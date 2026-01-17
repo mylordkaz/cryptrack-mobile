@@ -6,9 +6,9 @@ import { Platform } from "react-native";
 
 export const lightTokens = {
   // Backgrounds
-  bg: "#FFFFFF",
-  surface: "#F0F6FF",
-  surfaceSecondary: "#E8F1FF",
+  bg: "#F8FAFC",
+  surface: "#FFFFFF",
+  surfaceSecondary: "#F1F5F9",
 
   // Text
   text: "#0B0F14",
@@ -20,7 +20,7 @@ export const lightTokens = {
   accentSecondary: "#000000",
 
   // Borders
-  border: "#D1E3FF",
+  border: "#E2E8F0",
 
   // Semantic
   gain: "#10B981",
@@ -111,13 +111,13 @@ export type Radius = typeof radius;
 
 export const lightShadow = Platform.select({
   ios: {
-    shadowColor: "#4A87F7",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowColor: "#64748B",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
   },
   android: {
-    elevation: 3,
+    elevation: 2,
   },
   default: {},
 });

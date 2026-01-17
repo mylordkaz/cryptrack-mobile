@@ -75,6 +75,9 @@ const translations = {
       invalidPrice: "Price must be > 0",
       invalidSymbol: "Asset symbol is required",
     },
+    settings: {
+      title: "Settings",
+    },
   },
 };
 

@@ -12,18 +12,22 @@ interface AssetListProps {
 }
 
 export function AssetList({ assets }: AssetListProps) {
-  const symbols = useMemo(() => assets.map((a) => a.symbol), [assets]);
+  const symbols = useMemo(
+    () => [...new Set(assets.map((a) => a.symbol))].sort(),
+    [assets]
+  );
   const { metadata } = useCoinMetadata(symbols);
 
   return (
     <View style={styles.container}>
       <Headline style={styles.header}>{t("portfolio.assets")}</Headline>
 
-      {assets.map((asset) => (
+      {assets.map((asset, index) => (
         <AssetRow
           key={asset.symbol}
           asset={asset}
           imageUrl={metadata.get(asset.symbol)?.image_url}
+          isLast={index === assets.length - 1}
         />
       ))}
     </View>

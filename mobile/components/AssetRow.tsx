@@ -4,14 +4,15 @@ import { AssetWithMetrics } from "@/src/math/types";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { formatFiat, formatAmount } from "@/src/utils/format";
 import { useRouter } from "expo-router";
-import { Card, Headline, Caption, BodyMedium } from "./ui";
+import { Headline, Caption, BodyMedium } from "./ui";
 
 interface AssetRowProps {
   asset: AssetWithMetrics;
   imageUrl?: string;
+  isLast?: boolean;
 }
 
-export function AssetRow({ asset, imageUrl }: AssetRowProps) {
+export function AssetRow({ asset, imageUrl, isLast = false }: AssetRowProps) {
   const { theme } = useTheme();
   const router = useRouter();
 
@@ -35,7 +36,7 @@ export function AssetRow({ asset, imageUrl }: AssetRowProps) {
       onPress={() => router.push(`/asset/${asset.symbol}`)}
       style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
     >
-      <Card style={styles.card}>
+      <View style={styles.container}>
         <View style={styles.row}>
           {imageUrl ? (
             <Image
@@ -80,35 +81,41 @@ export function AssetRow({ asset, imageUrl }: AssetRowProps) {
             </View>
           </View>
         </View>
-      </Card>
+
+        {!isLast && (
+          <View style={styles.dividerContainer}>
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          </View>
+        )}
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: spacing.md,
+  container: {
+    paddingVertical: spacing.md,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
   },
   coinImage: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.full,
     marginRight: spacing.md,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.md,
   },
   iconText: {
-    fontSize: 18,
+    fontSize: 16,
   },
   infoContainer: {
     flex: 1,
@@ -131,7 +138,16 @@ const styles = StyleSheet.create({
   },
   pnlBadge: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 2,
     borderRadius: radius.sm,
+  },
+  dividerContainer: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    alignItems: "center",
+  },
+  divider: {
+    height: 1,
+    width: "100%",
   },
 });
