@@ -14,12 +14,26 @@ import { AssetList } from "@/components/AssetList";
 import { useRouter } from "expo-router";
 import { Button, Body, Headline, Caption } from "@/components/ui";
 import { AlertCircle, Wallet } from "lucide-react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useRef, useState } from "react";
 
 export default function PortfolioRecapScreen() {
   const { theme } = useTheme();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const isFirstFocus = useRef(true);
   const { priceMap, loading: pricesLoading } = useCoins();
-  const { portfolio, loading, error } = usePortfolioMetrics(priceMap);
+  const { portfolio, loading, error } = usePortfolioMetrics(priceMap, refreshKey);
   const router = useRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      setRefreshKey((prev) => prev + 1);
+    }, []),
+  );
 
   if (loading || pricesLoading) {
     return (

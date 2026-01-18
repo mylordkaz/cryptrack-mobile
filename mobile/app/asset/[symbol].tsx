@@ -50,7 +50,7 @@ export default function AssetDetailScreen() {
 
   useEffect(() => {
     if (!loading && data && data.transactionCount === 0) {
-      router.replace("/");
+      router.back();
     }
   }, [data, loading, router]);
 
@@ -190,7 +190,7 @@ export default function AssetDetailScreen() {
           <Button
             title={t("common.addTransaction")}
             onPress={() =>
-              router.replace({
+              router.push({
                 pathname: "/add-transaction",
                 params: { symbol },
               })

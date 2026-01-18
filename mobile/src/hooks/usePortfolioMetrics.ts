@@ -8,7 +8,7 @@ import { getAllTransactionsOrdered } from "../db/transactions";
 import { computeAssetMetrics } from "../math/assetMath";
 import { getLatestPrices } from "../db/prices";
 
-export function usePortfolioMetrics(priceMap: Record<string, number>) {
+export function usePortfolioMetrics(priceMap: Record<string, number>, refreshKey: number = 0) {
   const [portfolio, setPortfolio] = useState<PortfolioMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -116,7 +116,7 @@ export function usePortfolioMetrics(priceMap: Record<string, number>) {
     return () => {
       cancelled = true;
     };
-  }, [priceMap]);
+  }, [priceMap, refreshKey]);
 
   return { portfolio, loading, error };
 }

@@ -158,7 +158,7 @@ export default function AddTransactionScreen() {
 
     await insertTransaction(payload);
 
-    router.replace("/");
+    router.back();
   };
 
   return (
