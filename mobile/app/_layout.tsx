@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Text, View, Pressable } from "react-native";
 import { t } from "@/src/i18n";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Settings } from "lucide-react-native";
+import { Settings, ChevronLeft } from "lucide-react-native";
 
 function RootNavigator() {
   const { theme } = useTheme();
@@ -54,13 +54,100 @@ function RootNavigator() {
       />
       <Stack.Screen
         name="add-transaction"
-        options={{ title: t("transaction.addTitle") }}
+        options={{
+          headerTitleAlign: "center",
+          headerBackVisible: false,
+          headerTitle: () => (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+              }}
+            >
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={8}
+                style={{ position: "absolute", left: 0 }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <ChevronLeft size={28} color={theme.text} />
+              </Pressable>
+              <Text
+                style={{ color: theme.text, fontSize: 17, fontWeight: "600" }}
+              >
+                {t("transaction.addTitle")}
+              </Text>
+            </View>
+          ),
+        }}
       />
       <Stack.Screen
         name="asset/[symbol]"
-        options={{ title: t("assetDetail.title") }}
+        options={{
+          headerTitleAlign: "center",
+          headerBackVisible: false,
+          headerTitle: () => (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+              }}
+            >
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={8}
+                style={{ position: "absolute", left: 0 }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <ChevronLeft size={28} color={theme.text} />
+              </Pressable>
+              <Text
+                style={{ color: theme.text, fontSize: 17, fontWeight: "600" }}
+              >
+                {t("assetDetail.title")}
+              </Text>
+            </View>
+          ),
+        }}
       />
-      <Stack.Screen name="settings" options={{ title: t("settings.title") }} />
+      <Stack.Screen
+        name="settings"
+        options={{
+          headerTitleAlign: "center",
+          headerBackVisible: false,
+          headerTitle: () => (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+              }}
+            >
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={8}
+                style={{ position: "absolute", left: 0 }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <ChevronLeft size={28} color={theme.text} />
+              </Pressable>
+              <Text
+                style={{ color: theme.text, fontSize: 17, fontWeight: "600" }}
+              >
+                {t("settings.title")}
+              </Text>
+            </View>
+          ),
+        }}
+      />
     </Stack>
   );
 }

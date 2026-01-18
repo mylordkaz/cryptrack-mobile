@@ -3,23 +3,24 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   ScrollView,
   Pressable,
+  Modal,
+  Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import { useTheme } from "@/src/theme";
+import { useTheme, spacing, radius } from "@/src/theme";
 import { t } from "@/src/i18n";
-import { useLocalSearchParams } from "expo-router";
+import { Plus, Minus } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   getTransactionById,
   insertTransaction,
   updateTransaction,
 } from "@/src/db/transactions";
-import { useRouter } from "expo-router";
 import { formatDateTime } from "@/src/utils/format";
 import { useCoins } from "@/src/hooks/useCoins";
 
@@ -43,7 +44,9 @@ export default function AddTransactionScreen() {
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAssetList, setShowAssetList] = useState(false);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [totalFiat, setTotalFiat] = useState("");
   const [totalFiatDirty, setTotalFiatDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,9 @@ export default function AddTransactionScreen() {
       setNotes(tx.notes ?? "");
       setDate(new Date(tx.timestamp));
       setTotalFiat(Math.abs(tx.total_fiat).toString());
+      if (tx.fee_amount || tx.notes) {
+        setShowOptionalFields(true);
+      }
     })();
 
     return () => {
@@ -80,9 +86,16 @@ export default function AddTransactionScreen() {
   }, [assetSymbol, coins, symbol]);
 
   const selectedCoin = coins.find((coin) => coin.symbol === assetSymbol);
-  const assetLabel = coinsLoading
-    ? t("common.loading")
-    : selectedCoin?.name ?? t("transaction.assetSymbol");
+
+  const filteredCoins = useMemo(() => {
+    if (!searchQuery.trim()) return coins;
+    const query = searchQuery.toLowerCase();
+    return coins.filter(
+      (coin) =>
+        coin.name.toLowerCase().includes(query) ||
+        coin.symbol.toLowerCase().includes(query),
+    );
+  }, [coins, searchQuery]);
 
   const computedTotalFiatAbs = useMemo(() => {
     if (!amount.trim() || !pricePerUnit.trim()) return "0";
@@ -102,7 +115,9 @@ export default function AddTransactionScreen() {
   }, [computedTotalFiatAbs, totalFiat, totalFiatDirty]);
 
   const onDateChange = (_event: DateTimePickerEvent, selected?: Date) => {
-    setShowDatePicker(false);
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
     if (selected) {
       setDate(selected);
     }
@@ -147,7 +162,9 @@ export default function AddTransactionScreen() {
       source: "MANUAL",
       external_id: null,
       timestamp: date.getTime(),
-      total_fiat: Number.isFinite(signedTotalFiat) ? signedTotalFiat : undefined,
+      total_fiat: Number.isFinite(signedTotalFiat)
+        ? signedTotalFiat
+        : undefined,
     };
 
     if (isEditing && id) {
@@ -163,122 +180,214 @@ export default function AddTransactionScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={{ padding: 16 }}>
-        <Text style={{ color: theme.text, fontSize: 20, marginBottom: 12 }}>
-          {isEditing ? t("transaction.editTitle") : t("transaction.addTitle")}
-        </Text>
-
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
-          {t("transaction.type")}
-        </Text>
-        <View style={{ flexDirection: "row", marginBottom: 12 }}>
+      <View style={{ padding: spacing.md }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: spacing.sm,
+            marginBottom: spacing.md,
+          }}
+        >
           <Pressable onPress={() => setType("BUY")}>
             <View
               style={{
-                paddingVertical: 10,
-                paddingHorizontal: 16,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.lg,
+                borderRadius: radius.md,
                 borderWidth: 1,
-                borderColor: theme.muted,
-                backgroundColor: type === "BUY" ? theme.gain : "transparent",
+                borderColor: type === "BUY" ? theme.gain : theme.border,
+                backgroundColor:
+                  type === "BUY" ? theme.gain + "20" : "transparent",
               }}
             >
-              <Text style={{ color: theme.text }}>{t("transaction.buy")}</Text>
+              <Text
+                style={{
+                  color: type === "BUY" ? theme.gain : theme.text,
+                  fontWeight: type === "BUY" ? "600" : "400",
+                  fontSize: 15,
+                }}
+              >
+                {t("transaction.buy")}
+              </Text>
             </View>
           </Pressable>
-          <View style={{ width: 12 }} />
           <Pressable onPress={() => setType("SELL")}>
             <View
               style={{
-                paddingVertical: 10,
-                paddingHorizontal: 16,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.lg,
+                borderRadius: radius.md,
                 borderWidth: 1,
-                borderColor: theme.muted,
-                backgroundColor: type === "SELL" ? theme.loss : "transparent",
+                borderColor: type === "SELL" ? theme.loss : theme.border,
+                backgroundColor:
+                  type === "SELL" ? theme.loss + "20" : "transparent",
               }}
             >
-              <Text style={{ color: theme.text }}>{t("transaction.sell")}</Text>
+              <Text
+                style={{
+                  color: type === "SELL" ? theme.loss : theme.text,
+                  fontWeight: type === "SELL" ? "600" : "400",
+                  fontSize: 15,
+                }}
+              >
+                {t("transaction.sell")}
+              </Text>
             </View>
           </Pressable>
         </View>
 
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
-          {t("transaction.assetSymbol")}
+        <Text
+          style={{
+            color: theme.textSecondary,
+            marginBottom: spacing.xs,
+            fontSize: 13,
+          }}
+        >
+          {t("transaction.asset")}
         </Text>
-        <View style={{ marginBottom: 12, zIndex: 1000 }}>
+        {!showAssetList && selectedCoin ? (
           <Pressable
-            onPress={() => setShowAssetPicker(!showAssetPicker)}
-            disabled={coinsLoading || coins.length === 0}
+            onPress={() => {
+              setShowAssetList(true);
+              setSearchQuery("");
+            }}
+            style={{
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: radius.md,
+              padding: spacing.sm,
+              marginBottom: spacing.md,
+              flexDirection: "row",
+              alignItems: "center",
+              minHeight: 44,
+            }}
           >
-            <View
+            <Image
+              source={{ uri: selectedCoin.image }}
               style={{
-                borderWidth: 1,
-                borderColor: theme.muted,
-                padding: 10,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                backgroundColor: theme.bg,
-                opacity: coinsLoading || coins.length === 0 ? 0.6 : 1,
+                width: 28,
+                height: 28,
+                marginRight: spacing.sm,
+                borderRadius: 14,
               }}
-            >
-              <Text style={{ color: theme.text }}>
-                {assetLabel}
-              </Text>
-              <Text style={{ color: theme.muted }}>⌄</Text>
-            </View>
+              contentFit="contain"
+              cachePolicy="disk"
+            />
+            <Text style={{ color: theme.text, fontSize: 15, flex: 1 }}>
+              {selectedCoin.name}
+            </Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+              {selectedCoin.symbol.toUpperCase()}
+            </Text>
           </Pressable>
-
-          {showAssetPicker && (
-            <View
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                backgroundColor: theme.bg,
-                borderWidth: 1,
-                borderColor: theme.muted,
-                maxHeight: 250,
-                zIndex: 1000,
-              }}
-            >
-              <ScrollView nestedScrollEnabled={true}>
-                {coins.map((coin) => (
-                  <Pressable
-                    key={coin.id}
-                    onPress={() => {
-                      setAssetSymbol(coin.symbol);
-                      setShowAssetPicker(false);
-                    }}
-                    style={{
-                      padding: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.muted,
-                      backgroundColor:
-                        assetSymbol === coin.symbol
-                          ? theme.muted + "20"
-                          : "transparent",
-                    }}
-                  >
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <Image
-                        source={{ uri: coin.image }}
-                        style={{ width: 24, height: 24, marginRight: 8, borderRadius: 12 }}
-                        contentFit="contain"
-                        cachePolicy="disk"
-                      />
-                      <Text style={{ color: theme.text, fontSize: 16 }}>
+        ) : (
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setShowAssetList(true)}
+            placeholder={t("transaction.searchAsset")}
+            placeholderTextColor={theme.muted}
+            autoFocus={showAssetList}
+            style={{
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: radius.md,
+              color: theme.text,
+              padding: spacing.sm,
+              marginBottom: spacing.md,
+              fontSize: 15,
+              minHeight: 44,
+            }}
+          />
+        )}
+        {showAssetList && (
+          <ScrollView
+            style={{
+              maxHeight: 200,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: radius.md,
+              marginBottom: spacing.md,
+            }}
+            nestedScrollEnabled={true}
+          >
+            {coinsLoading ? (
+              <View style={{ padding: spacing.md, alignItems: "center" }}>
+                <Text style={{ color: theme.textSecondary }}>
+                  {t("common.loading")}
+                </Text>
+              </View>
+            ) : filteredCoins.length === 0 ? (
+              <View style={{ padding: spacing.md, alignItems: "center" }}>
+                <Text style={{ color: theme.textSecondary }}>
+                  {t("common.noData")}
+                </Text>
+              </View>
+            ) : (
+              filteredCoins.map((coin) => (
+                <Pressable
+                  key={coin.id}
+                  onPress={() => {
+                    setAssetSymbol(coin.symbol);
+                    setSearchQuery("");
+                    setShowAssetList(false);
+                  }}
+                  style={{
+                    padding: spacing.sm,
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.border,
+                    backgroundColor:
+                      assetSymbol === coin.symbol
+                        ? theme.accent + "10"
+                        : "transparent",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Image
+                      source={{ uri: coin.image }}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        marginRight: spacing.sm,
+                        borderRadius: 16,
+                      }}
+                      contentFit="contain"
+                      cachePolicy="disk"
+                    />
+                    <View>
+                      <Text
+                        style={{
+                          color: theme.text,
+                          fontSize: 15,
+                          fontWeight: "500",
+                        }}
+                      >
                         {coin.name}
                       </Text>
+                      <Text
+                        style={{
+                          color: theme.textSecondary,
+                          fontSize: 13,
+                        }}
+                      >
+                        {coin.symbol.toUpperCase()}
+                      </Text>
                     </View>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-        </View>
+                  </View>
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
+        )}
 
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
+        <Text
+          style={{
+            color: theme.textSecondary,
+            marginBottom: spacing.xs,
+            fontSize: 13,
+          }}
+        >
           {t("transaction.amount")}
         </Text>
         <TextInput
@@ -289,14 +398,23 @@ export default function AddTransactionScreen() {
           placeholderTextColor={theme.muted}
           style={{
             borderWidth: 1,
-            borderColor: theme.muted,
+            borderColor: theme.border,
+            borderRadius: radius.md,
             color: theme.text,
-            padding: 10,
-            marginBottom: 12,
+            padding: spacing.sm,
+            marginBottom: spacing.md,
+            fontSize: 15,
+            minHeight: 44,
           }}
         />
 
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
+        <Text
+          style={{
+            color: theme.textSecondary,
+            marginBottom: spacing.xs,
+            fontSize: 13,
+          }}
+        >
           {t("transaction.pricePerUnit")}
         </Text>
         <TextInput
@@ -307,27 +425,46 @@ export default function AddTransactionScreen() {
           placeholderTextColor={theme.muted}
           style={{
             borderWidth: 1,
-            borderColor: theme.muted,
+            borderColor: theme.border,
+            borderRadius: radius.md,
             color: theme.text,
-            padding: 10,
-            marginBottom: 12,
+            padding: spacing.sm,
+            marginBottom: spacing.md,
+            fontSize: 15,
+            minHeight: 44,
           }}
         />
 
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
+        <Text
+          style={{
+            color: theme.textSecondary,
+            marginBottom: spacing.xs,
+            fontSize: 13,
+          }}
+        >
           {t("transaction.totalFiat")}
         </Text>
         <View
           style={{
             borderWidth: 1,
-            borderColor: theme.muted,
+            borderColor: theme.border,
+            borderRadius: radius.md,
             flexDirection: "row",
             alignItems: "center",
-            paddingHorizontal: 10,
-            marginBottom: 12,
+            paddingHorizontal: spacing.sm,
+            marginBottom: spacing.md,
+            minHeight: 44,
           }}
         >
-          <Text style={{ color: theme.muted, marginRight: 6 }}>$</Text>
+          <Text
+            style={{
+              color: theme.textSecondary,
+              marginRight: spacing.xs,
+              fontSize: 15,
+            }}
+          >
+            $
+          </Text>
           <TextInput
             value={totalFiat}
             onChangeText={(value) => {
@@ -339,85 +476,230 @@ export default function AddTransactionScreen() {
             placeholderTextColor={theme.muted}
             style={{
               color: theme.text,
-              paddingVertical: 10,
               flex: 1,
+              fontSize: 15,
             }}
           />
         </View>
 
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
-          {t("transaction.feeAmount")}
-        </Text>
-        <TextInput
-          value={feeAmount}
-          onChangeText={setFeeAmount}
-          keyboardType="numeric"
-          placeholder="0.0"
-          placeholderTextColor={theme.muted}
-          style={{
-            borderWidth: 1,
-            borderColor: theme.muted,
-            color: theme.text,
-            padding: 10,
-            marginBottom: 12,
-          }}
-        />
-
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
-          {t("transaction.notes")}
-        </Text>
-        <TextInput
-          value={notes}
-          onChangeText={setNotes}
-          placeholder={t("transaction.notesPlaceholder")}
-          placeholderTextColor={theme.muted}
-          style={{
-            borderWidth: 1,
-            borderColor: theme.muted,
-            color: theme.text,
-            padding: 10,
-            marginBottom: 12,
-          }}
-          multiline
-        />
-
         {error ? (
-          <Text style={{ color: theme.loss, marginBottom: 12 }}>{error}</Text>
+          <Text
+            style={{
+              color: theme.loss,
+              marginBottom: spacing.md,
+              fontSize: 13,
+            }}
+          >
+            {error}
+          </Text>
         ) : null}
 
-        <Text style={{ color: theme.muted, marginBottom: 6 }}>
+        <Text
+          style={{
+            color: theme.textSecondary,
+            marginBottom: spacing.xs,
+            fontSize: 13,
+          }}
+        >
           {t("transaction.timestamp")}
         </Text>
         <Pressable onPress={() => setShowDatePicker(true)}>
           <View
             style={{
               borderWidth: 1,
-              borderColor: theme.muted,
-              padding: 10,
-              marginBottom: 12,
+              borderColor: theme.border,
+              borderRadius: radius.md,
+              padding: spacing.sm,
+              marginBottom: spacing.md,
+              minHeight: 44,
+              justifyContent: "center",
             }}
           >
-            <Text style={{ color: theme.text }}>
+            <Text style={{ color: theme.text, fontSize: 15 }}>
               {formatDateTime(date.getTime())}
             </Text>
           </View>
         </Pressable>
 
-        {showDatePicker ? (
-          <DateTimePicker
-            value={date}
-            mode="datetime"
-            display="default"
-            onChange={onDateChange}
-          />
-        ) : null}
+        <Pressable
+          onPress={() => setShowOptionalFields(!showOptionalFields)}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingVertical: spacing.sm,
+            marginBottom: spacing.md,
+          }}
+        >
+          <Text
+            style={{
+              color: theme.textSecondary,
+              fontSize: 13,
+            }}
+          >
+            {t("transaction.optionalFieldsTitle")}
+          </Text>
+          {showOptionalFields ? (
+            <Minus size={16} color={theme.textSecondary} />
+          ) : (
+            <Plus size={16} color={theme.textSecondary} />
+          )}
+        </Pressable>
 
-        <Button
-          title={
-            isEditing ? t("transaction.saveChanges") : t("transaction.submit")
-          }
-          onPress={onSubmit}
-        />
+        {showOptionalFields && (
+          <>
+            <Text
+              style={{
+                color: theme.textSecondary,
+                marginBottom: spacing.xs,
+                fontSize: 13,
+              }}
+            >
+              {t("transaction.feeAmount")}
+            </Text>
+            <TextInput
+              value={feeAmount}
+              onChangeText={setFeeAmount}
+              keyboardType="numeric"
+              placeholder="0.0"
+              placeholderTextColor={theme.muted}
+              style={{
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: radius.md,
+                color: theme.text,
+                padding: spacing.sm,
+                marginBottom: spacing.md,
+                fontSize: 15,
+                minHeight: 44,
+              }}
+            />
+
+            <Text
+              style={{
+                color: theme.textSecondary,
+                marginBottom: spacing.xs,
+                fontSize: 13,
+              }}
+            >
+              {t("transaction.notes")}
+            </Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder={t("transaction.notesPlaceholder")}
+              placeholderTextColor={theme.muted}
+              style={{
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: radius.md,
+                color: theme.text,
+                padding: spacing.sm,
+                marginBottom: spacing.md,
+                fontSize: 15,
+                minHeight: 70,
+                textAlignVertical: "top",
+              }}
+              multiline
+            />
+          </>
+        )}
+
+        <Modal
+          visible={showDatePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <Pressable
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              justifyContent: "flex-end",
+            }}
+            onPress={() => setShowDatePicker(false)}
+          >
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View
+                style={{
+                  backgroundColor: theme.surface,
+                  borderTopLeftRadius: radius.lg,
+                  borderTopRightRadius: radius.lg,
+                  paddingBottom:
+                    Platform.OS === "ios" ? spacing.xl : spacing.md,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: spacing.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.text,
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {t("transaction.timestamp")}
+                  </Text>
+                  <Pressable onPress={() => setShowDatePicker(false)}>
+                    <Text
+                      style={{
+                        color: theme.accent,
+                        fontSize: 16,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {t("common.done")}
+                    </Text>
+                  </Pressable>
+                </View>
+                <View style={{ alignItems: "center", width: "100%" }}>
+                  <DateTimePicker
+                    value={date}
+                    mode="datetime"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onDateChange}
+                    textColor={theme.text}
+                    themeVariant={theme.bg === "#0B0F14" ? "dark" : "light"}
+                  />
+                </View>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Pressable onPress={onSubmit}>
+          {({ pressed }) => (
+            <View
+              style={{
+                backgroundColor: theme.accent,
+                borderRadius: radius.md,
+                padding: spacing.md,
+                alignItems: "center",
+                opacity: pressed ? 0.8 : 1,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                {isEditing
+                  ? t("transaction.saveChanges")
+                  : t("transaction.submit")}
+              </Text>
+            </View>
+          )}
+        </Pressable>
       </View>
     </ScrollView>
   );
