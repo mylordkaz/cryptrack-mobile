@@ -2,8 +2,9 @@ import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { Card, Caption, BodyMedium } from "./ui";
 import { LineChart, PieChart, yAxisSides } from "react-native-gifted-charts";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { t } from "@/src/i18n";
+import { AssetWithMetrics } from "@/src/math/types";
 
 const demoPerformanceData = [
   { value: 420, label: "Jan" },
@@ -20,22 +21,41 @@ const demoPerformanceData = [
   { value: 2220, label: "" },
 ];
 
-const demoAllocationData = [
-  { value: 45, color: "#4A87F7", text: "BTC" },
-  { value: 30, color: "#75F7F3", text: "ETH" },
-  { value: 15, color: "#10B981", text: "SOL" },
-  { value: 10, color: "#EF4444", text: "USDC" },
-];
-
 type ChartType = "performance" | "allocation";
 type TimePeriod = "24h" | "7D" | "30D" | "90D" | "all";
 
 const TIME_PERIODS: TimePeriod[] = ["24h", "7D", "30D", "90D", "all"];
 
-export function PortfolioChart() {
+interface PortfolioChartProps {
+  assets: AssetWithMetrics[];
+}
+
+export function PortfolioChart({ assets }: PortfolioChartProps) {
   const { theme } = useTheme();
   const [chartType, setChartType] = useState<ChartType>("performance");
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("30D");
+
+  const allocationData = useMemo(() => {
+    const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+    if (totalValue <= 0) return [];
+
+    const palette = [
+      theme.accent,
+      theme.accentSecondary,
+      theme.gain,
+      theme.loss,
+      theme.textSecondary,
+    ];
+
+    return assets.map((asset, index) => {
+      const percent = (asset.currentValue / totalValue) * 100;
+      return {
+        value: Number(percent.toFixed(1)),
+        color: palette[index % palette.length],
+        text: asset.symbol,
+      };
+    });
+  }, [assets, theme]);
 
   return (
     <View style={styles.chartContainer}>
@@ -194,13 +214,14 @@ export function PortfolioChart() {
         ) : (
           <View style={styles.pieChartContainer}>
             <PieChart
-              data={demoAllocationData}
+              data={allocationData}
               donut
               radius={80}
               innerRadius={45}
+              innerCircleColor={theme.bg}
             />
             <View style={styles.legendContainer}>
-              {demoAllocationData.map((item, index) => (
+              {allocationData.map((item, index) => (
                 <View key={index} style={styles.legendItem}>
                   <View
                     style={[
@@ -212,7 +233,7 @@ export function PortfolioChart() {
                   <Caption
                     style={{ color: theme.textSecondary, marginLeft: "auto" }}
                   >
-                    {item.value}%
+                    {item.value.toFixed(1)}%
                   </Caption>
                 </View>
               ))}

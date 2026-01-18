@@ -94,7 +94,7 @@ export default function PortfolioRecapScreen() {
         theme={theme}
       />
 
-      <PortfolioChart />
+      <PortfolioChart assets={portfolio.assets} />
 
       <AssetList assets={portfolio.assets} />
     </ScrollView>
