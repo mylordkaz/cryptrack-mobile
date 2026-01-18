@@ -1,8 +1,10 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { t } from "@/src/i18n";
-import { ThemeTokens, spacing, radius } from "@/src/theme";
+import { ThemeTokens, spacing, radius, useTheme } from "@/src/theme";
 import { formatFiat } from "@/src/utils/format";
 import { HeroText, Caption, Body, Label } from "./ui";
+import { Plus } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 interface PortfolioTopSectionProps {
   totalValue: number;
@@ -18,6 +20,8 @@ export function PortfolioTopSection({
   totalPnL,
   totalPnLPercentage,
 }: PortfolioTopSectionProps) {
+  const { theme } = useTheme();
+  const router = useRouter();
   const isPositive = totalPnL >= 0;
   const pnlSign = isPositive ? "+" : "";
   const pnlPercentText =
@@ -26,7 +30,22 @@ export function PortfolioTopSection({
   return (
     <View style={styles.container}>
       <Label>{t("portfolio.totalValue")}</Label>
-      <HeroText style={styles.heroValue}>{formatFiat(totalValue)}</HeroText>
+      <View style={styles.valueRow}>
+        <HeroText style={styles.heroValue}>{formatFiat(totalValue)}</HeroText>
+        <View style={{ flex: 1 }} />
+        <Pressable
+          onPress={() => router.push("/add-transaction")}
+          style={({ pressed }) => [
+            styles.addButton,
+            {
+              backgroundColor: theme.accent,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}
+        >
+          <Plus size={28} color="#FFFFFF" />
+        </Pressable>
+      </View>
 
       <View style={styles.metricsRow}>
         <View style={styles.metricItem}>
@@ -54,9 +73,23 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxl,
   },
-  heroValue: {
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
     marginTop: spacing.xs,
     marginBottom: spacing.xl,
+  },
+  heroValue: {
+    flex: 0,
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.md,
   },
   metricsRow: {
     flexDirection: "row",

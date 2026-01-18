@@ -1,13 +1,19 @@
-import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { usePortfolioMetrics } from "../src/hooks/usePortfolioMetrics";
 import { useCoins } from "@/src/hooks/useCoins";
 import { useTheme, spacing } from "@/src/theme";
 import { t } from "@/src/i18n";
 import { PortfolioTopSection } from "@/components/PortfolioTopSection";
+import { PortfolioChart } from "@/components/PortfolioChart";
 import { AssetList } from "@/components/AssetList";
 import { useRouter } from "expo-router";
 import { Button, Body, Headline, Caption } from "@/components/ui";
-import { Ionicons } from "@expo/vector-icons";
+import { AlertCircle, Wallet } from "lucide-react-native";
 
 export default function PortfolioRecapScreen() {
   const { theme } = useTheme();
@@ -27,7 +33,7 @@ export default function PortfolioRecapScreen() {
   if (error) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.bg }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={theme.loss} />
+        <AlertCircle size={48} color={theme.loss} />
         <Body style={styles.errorText}>
           {t("common.error")}: {error.message}
         </Body>
@@ -38,11 +44,20 @@ export default function PortfolioRecapScreen() {
   if (!portfolio || portfolio.assets.length === 0) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.bg }]}>
-        <View style={[styles.emptyIconContainer, { backgroundColor: theme.accent + "15" }]}>
-          <Ionicons name="wallet-outline" size={48} color={theme.accent} />
+        <View
+          style={[
+            styles.emptyIconContainer,
+            { backgroundColor: theme.accent + "15" },
+          ]}
+        >
+          <Wallet size={48} color={theme.accent} />
         </View>
-        <Headline style={styles.emptyTitle}>{t("portfolio.emptyState")}</Headline>
-        <Caption style={styles.emptySubtitle}>{t("portfolio.emptyStateSubtitle")}</Caption>
+        <Headline style={styles.emptyTitle}>
+          {t("portfolio.emptyState")}
+        </Headline>
+        <Caption style={styles.emptySubtitle}>
+          {t("portfolio.emptyStateSubtitle")}
+        </Caption>
         <Button
           title={t("portfolio.addFirstTransaction")}
           onPress={() => router.push("/add-transaction")}
@@ -65,15 +80,9 @@ export default function PortfolioRecapScreen() {
         theme={theme}
       />
 
-      <AssetList assets={portfolio.assets} />
+      <PortfolioChart />
 
-      <View style={styles.addButtonContainer}>
-        <Button
-          title={t("common.addTransaction")}
-          onPress={() => router.push("/add-transaction")}
-          variant="secondary"
-        />
-      </View>
+      <AssetList assets={portfolio.assets} />
     </ScrollView>
   );
 }
@@ -116,9 +125,5 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     minWidth: 200,
-  },
-  addButtonContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
   },
 });

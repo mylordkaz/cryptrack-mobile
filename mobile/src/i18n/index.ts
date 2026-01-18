@@ -24,6 +24,9 @@ const translations = {
       currentValue: "Value",
       avgBuyPrice: "Avg Buy",
       unrealizedPnL: "Unrealized PnL",
+      performance: "Performance",
+      allocation: "Allocation",
+      total: "Total",
     },
     assetDetail: {
       title: "Asset Detail",
