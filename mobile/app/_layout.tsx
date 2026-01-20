@@ -86,35 +86,39 @@ function RootNavigator() {
       />
       <Stack.Screen
         name="asset/[symbol]"
-        options={{
+        options={({ route }) => ({
           headerTitleAlign: "center",
           headerBackVisible: false,
-          headerTitle: () => (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "100%",
-              }}
-            >
-              <Pressable
-                onPress={() => router.back()}
-                hitSlop={8}
-                style={{ position: "absolute", left: 0 }}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
+          headerTitle: () => {
+            const params = route.params as { symbol?: string };
+            const symbol = params?.symbol ?? "";
+            return (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%",
+                }}
               >
-                <ChevronLeft size={28} color={theme.text} />
-              </Pressable>
-              <Text
-                style={{ color: theme.text, fontSize: 17, fontWeight: "600" }}
-              >
-                {t("assetDetail.title")}
-              </Text>
-            </View>
-          ),
-        }}
+                <Pressable
+                  onPress={() => router.back()}
+                  hitSlop={8}
+                  style={{ position: "absolute", left: 0 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                >
+                  <ChevronLeft size={28} color={theme.text} />
+                </Pressable>
+                <Text
+                  style={{ color: theme.text, fontSize: 17, fontWeight: "600" }}
+                >
+                  {symbol}
+                </Text>
+              </View>
+            );
+          },
+        })}
       />
       <Stack.Screen
         name="settings"

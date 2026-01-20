@@ -10,6 +10,7 @@ const translations = {
       addTransaction: "Add transaction",
       cancel: "Cancel",
       done: "Done",
+      details: "Details",
     },
     portfolio: {
       title: "Portfolio",

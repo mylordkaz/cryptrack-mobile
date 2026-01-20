@@ -13,7 +13,7 @@ interface AssetRowProps {
 }
 
 export function AssetRow({ asset, imageUrl, isLast = false }: AssetRowProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
 
   const unrealizedPnLPercent =
@@ -71,7 +71,17 @@ export function AssetRow({ asset, imageUrl, isLast = false }: AssetRowProps) {
                 <View
                   style={[styles.pnlBadge, { backgroundColor: pnlColor + "15" }]}
                 >
-                  <Caption style={{ color: pnlColor }}>
+                  <Caption
+                    style={{
+                      color: pnlColor,
+                      ...(isDark &&
+                        unrealizedPnLPercent !== null && {
+                          textShadowColor: pnlColor,
+                          textShadowOffset: { width: 0, height: 0 },
+                          textShadowRadius: 8,
+                        }),
+                    }}
+                  >
                     {unrealizedPnLPercent !== null
                       ? `${isPositive ? "+" : ""}${unrealizedPnLPercent.toFixed(2)}%`
                       : "-"}

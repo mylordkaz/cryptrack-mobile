@@ -20,7 +20,7 @@ export function PortfolioTopSection({
   totalPnL,
   totalPnLPercentage,
 }: PortfolioTopSectionProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
   const isPositive = totalPnL >= 0;
   const pnlSign = isPositive ? "+" : "";
@@ -40,10 +40,11 @@ export function PortfolioTopSection({
             {
               backgroundColor: theme.accent,
               opacity: pressed ? 0.7 : 1,
+              shadowColor: theme.accent,
             },
           ]}
         >
-          <Plus size={28} color="#FFFFFF" />
+          <Plus size={28} color={isDark ? "#000000" : "#FFFFFF"} />
         </Pressable>
       </View>
 
@@ -57,7 +58,14 @@ export function PortfolioTopSection({
           <Caption>{t("portfolio.totalPnL")}</Caption>
           <Body
             color={isPositive ? "gain" : "loss"}
-            style={styles.metricValue}
+            style={[
+              styles.metricValue,
+              isDark && {
+                textShadowColor: isPositive ? theme.gain : theme.loss,
+                textShadowOffset: { width: 0, height: 0 },
+                textShadowRadius: 8,
+              },
+            ]}
           >
             {pnlSign}{formatFiat(totalPnL)}{pnlPercentText}
           </Body>
@@ -90,6 +98,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: spacing.md,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
   },
   metricsRow: {
     flexDirection: "row",

@@ -11,7 +11,7 @@ import { useTheme, spacing, radius, fontSize, fontWeight } from "@/src/theme";
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "text";
+  variant?: "primary" | "secondary" | "text" | "destructive";
   size?: "sm" | "md" | "lg";
   disabled?: boolean;
   loading?: boolean;
@@ -56,9 +56,14 @@ export function Button({
           container: {
             backgroundColor: theme.accent,
             opacity: disabled ? 0.5 : pressedOpacity,
+            shadowColor: theme.accent,
+            shadowOpacity: 0.4,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 0 },
+            elevation: 6,
           },
           text: {
-            color: isDark ? theme.bg : "#FFFFFF",
+            color: isDark ? "#000000" : "#FFFFFF",
           },
         };
       case "secondary":
@@ -81,6 +86,23 @@ export function Button({
           },
           text: {
             color: theme.accent,
+          },
+        };
+      case "destructive":
+        return {
+          container: {
+            backgroundColor: "transparent",
+            borderWidth: 1.5,
+            borderColor: theme.loss,
+            opacity: disabled ? 0.5 : pressedOpacity,
+            shadowColor: theme.loss,
+            shadowOpacity: 0.4,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 0 },
+            elevation: 6,
+          },
+          text: {
+            color: theme.loss,
           },
         };
     }
@@ -106,7 +128,13 @@ export function Button({
         loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === "primary" ? (isDark ? theme.bg : "#FFFFFF") : theme.accent}
+            color={
+              variant === "primary"
+                ? (isDark ? "#000000" : "#FFFFFF")
+                : variant === "destructive"
+                ? theme.loss
+                : theme.accent
+            }
           />
         ) : (
           <Text

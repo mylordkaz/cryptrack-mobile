@@ -27,7 +27,7 @@ import { useCoins } from "@/src/hooks/useCoins";
 type TxType = "BUY" | "SELL";
 
 export default function AddTransactionScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { symbol, id } = useLocalSearchParams<{
     symbol?: string;
     id?: string;
@@ -184,55 +184,57 @@ export default function AddTransactionScreen() {
         <View
           style={{
             flexDirection: "row",
-            justifyContent: "center",
-            gap: spacing.sm,
             marginBottom: spacing.md,
+            gap: spacing.xl,
+            paddingHorizontal: spacing.lg,
           }}
         >
-          <Pressable onPress={() => setType("BUY")}>
-            <View
-              style={{
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.lg,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: type === "BUY" ? theme.gain : theme.border,
-                backgroundColor:
-                  type === "BUY" ? theme.gain + "20" : "transparent",
-              }}
-            >
+          <Pressable onPress={() => setType("BUY")} style={{ flex: 1 }}>
+            <View>
               <Text
                 style={{
-                  color: type === "BUY" ? theme.gain : theme.text,
-                  fontWeight: type === "BUY" ? "600" : "400",
-                  fontSize: 15,
+                  color: type === "BUY" ? theme.gain : theme.textSecondary,
+                  fontWeight: type === "BUY" ? "700" : "400",
+                  fontSize: 18,
+                  textAlign: "center",
+                  paddingBottom: spacing.sm,
                 }}
               >
                 {t("transaction.buy")}
               </Text>
+              {type === "BUY" && (
+                <View
+                  style={{
+                    height: 3,
+                    backgroundColor: theme.gain,
+                    borderRadius: radius.sm,
+                  }}
+                />
+              )}
             </View>
           </Pressable>
-          <Pressable onPress={() => setType("SELL")}>
-            <View
-              style={{
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.lg,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: type === "SELL" ? theme.loss : theme.border,
-                backgroundColor:
-                  type === "SELL" ? theme.loss + "20" : "transparent",
-              }}
-            >
+          <Pressable onPress={() => setType("SELL")} style={{ flex: 1 }}>
+            <View>
               <Text
                 style={{
-                  color: type === "SELL" ? theme.loss : theme.text,
-                  fontWeight: type === "SELL" ? "600" : "400",
-                  fontSize: 15,
+                  color: type === "SELL" ? theme.loss : theme.textSecondary,
+                  fontWeight: type === "SELL" ? "700" : "400",
+                  fontSize: 18,
+                  textAlign: "center",
+                  paddingBottom: spacing.sm,
                 }}
               >
                 {t("transaction.sell")}
               </Text>
+              {type === "SELL" && (
+                <View
+                  style={{
+                    height: 3,
+                    backgroundColor: theme.loss,
+                    borderRadius: radius.sm,
+                  }}
+                />
+              )}
             </View>
           </Pressable>
         </View>
@@ -684,11 +686,16 @@ export default function AddTransactionScreen() {
                 padding: spacing.md,
                 alignItems: "center",
                 opacity: pressed ? 0.8 : 1,
+                shadowColor: theme.accent,
+                shadowOpacity: 0.4,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 0 },
+                elevation: 6,
               }}
             >
               <Text
                 style={{
-                  color: "#FFFFFF",
+                  color: isDark ? "#000000" : "#FFFFFF",
                   fontSize: 16,
                   fontWeight: "600",
                 }}

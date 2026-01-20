@@ -1,7 +1,7 @@
-import { View, Text, Modal, Pressable, Button, Dimensions } from "react-native";
+import { View, Modal, Pressable, Dimensions, StyleSheet } from "react-native";
 import { useCallback, useEffect } from "react";
 import { Transaction } from "@/src/types/transaction";
-import { ThemeTokens } from "@/src/theme";
+import { ThemeTokens, spacing, radius, useTheme } from "@/src/theme";
 import { formatFiat, formatAmount, formatDateTime } from "@/src/utils/format";
 import { t } from "@/src/i18n";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -13,6 +13,8 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+import { Title, Caption, Body, Headline } from "./ui";
+import { Button } from "./ui/Button";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -39,6 +41,7 @@ export function TransactionDetailsBottomSheet({
   onEdit,
   onDelete,
 }: TransactionDetailsBottomSheetProps) {
+  const { isDark } = useTheme();
   const translateY = useSharedValue(0);
   const isDismissing = useSharedValue(false);
   const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -95,179 +98,109 @@ export function TransactionDetailsBottomSheet({
       animationType="none"
       onRequestClose={closeNow}
     >
-      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+      <View style={styles.modalContainer}>
         <AnimatedPressable
           onPress={closeNow}
-          style={[
-            {
-              position: "absolute",
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              backgroundColor: "rgba(0,0,0,0.5)",
-            },
-            backdropStyle,
-          ]}
+          style={[styles.backdrop, backdropStyle]}
         />
         <GestureDetector gesture={panGesture}>
           <Animated.View
             style={[
-              {
-                backgroundColor: theme.bg,
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
-                padding: 20,
-                paddingBottom: 40,
-              },
+              styles.sheetContainer,
+              { backgroundColor: theme.bg },
               animatedStyle,
             ]}
           >
-            <View
-              style={{
-                width: 40,
-                height: 4,
-                backgroundColor: theme.muted,
-                borderRadius: 2,
-                alignSelf: "center",
-                marginBottom: 16,
-              }}
-            />
+            <View style={[styles.dragHandle, { backgroundColor: theme.muted }]} />
 
             {/* Header */}
-            <Text
-              style={{
-                color: theme.text,
-                fontSize: 20,
-                fontWeight: "600",
-                marginBottom: 20,
-              }}
-            >
-              {t("transaction.detailsTitle")}
-            </Text>
+            <Title style={styles.header}>{t("common.details")}</Title>
+
+            {/* Date and Type Row */}
+            <View style={styles.dateTypeRow}>
+              <Caption>{formatDateTime(transaction.timestamp)}</Caption>
+              <Body
+                color={transaction.type === "BUY" ? "gain" : "loss"}
+                style={[
+                  styles.transactionType,
+                  isDark && {
+                    textShadowColor: transaction.type === "BUY" ? theme.gain : theme.loss,
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 8,
+                  },
+                ]}
+              >
+                {transaction.type}
+              </Body>
+            </View>
 
             {/* Transaction Details */}
-            <View>
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{ color: theme.muted, fontSize: 12, marginBottom: 4 }}
-                >
-                  {t("transaction.date")}
-                </Text>
-                <Text style={{ color: theme.text, fontSize: 16 }}>
-                  {formatDateTime(transaction.timestamp)}
-                </Text>
-              </View>
-
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{ color: theme.muted, fontSize: 12, marginBottom: 4 }}
-                >
-                  {t("transaction.type")}
-                </Text>
-                <Text
-                  style={{
-                    color: transaction.type === "BUY" ? theme.gain : theme.loss,
-                    fontSize: 16,
-                    fontWeight: "600",
-                  }}
-                >
-                  {transaction.type}
-                </Text>
-              </View>
-
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{ color: theme.muted, fontSize: 12, marginBottom: 4 }}
-                >
-                  {t("transaction.amount")}
-                </Text>
-                <Text style={{ color: theme.text, fontSize: 16 }}>
-                  {formatAmount(Math.abs(transaction.amount), 6)} {symbol}
-                </Text>
-              </View>
-
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{ color: theme.muted, fontSize: 12, marginBottom: 4 }}
-                >
-                  {t("transaction.currentValue")}
-                </Text>
-                <Text style={{ color: theme.text, fontSize: 16 }}>
-                  {currentValue !== null ? formatFiat(currentValue) : "-"}
-                </Text>
-              </View>
-
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{ color: theme.muted, fontSize: 12, marginBottom: 4 }}
-                >
-                  {t("transaction.priceAtTime")}
-                </Text>
-                <Text style={{ color: theme.text, fontSize: 16 }}>
-                  {formatFiat(transaction.price_per_unit_fiat)}
-                </Text>
-              </View>
-
-              {transaction.type === "BUY" && (
-                <View style={{ marginBottom: 12 }}>
-                  <Text
-                    style={{
-                      color: theme.muted,
-                      fontSize: 12,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {t("transaction.costBasis")}
-                  </Text>
-                  <Text style={{ color: theme.text, fontSize: 16 }}>
-                    {costBasis !== null ? formatFiat(costBasis) : "-"}
-                  </Text>
+            <View style={styles.content}>
+              {/* Main Info Card */}
+              <View style={[styles.mainInfoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                {/* Left: Amount */}
+                <View style={styles.amountSection}>
+                  <Headline style={styles.amountValue}>
+                    {formatAmount(Math.abs(transaction.amount), 6)}
+                  </Headline>
+                  <Caption>{symbol}</Caption>
                 </View>
-              )}
 
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{ color: theme.muted, fontSize: 12, marginBottom: 4 }}
-                >
-                  {t("transaction.fee")}
-                </Text>
-                <Text style={{ color: theme.text, fontSize: 16 }}>
+                {/* Right: Price Metrics */}
+                <View style={styles.metricsSection}>
+                  <View style={styles.metricItem}>
+                    <Caption>{t("transaction.priceAtTime")}</Caption>
+                    <Body>{formatFiat(transaction.price_per_unit_fiat)}</Body>
+                  </View>
+                  <View style={styles.metricItem}>
+                    <Caption>{t("transaction.currentValue")}</Caption>
+                    <Body>
+                      {currentValue !== null ? formatFiat(currentValue) : "-"}
+                    </Body>
+                  </View>
+                  {transaction.type === "BUY" && (
+                    <View style={styles.metricItem}>
+                      <Caption>{t("transaction.costBasis")}</Caption>
+                      <Body>
+                        {costBasis !== null ? formatFiat(costBasis) : "-"}
+                      </Body>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Caption>{t("transaction.fee")}</Caption>
+                <Body>
                   {transaction.fee_amount
                     ? transaction.fee_currency === transaction.fiat_currency
                       ? formatFiat(transaction.fee_amount)
                       : `${transaction.fee_amount} ${transaction.fee_currency}`
                     : "-"}
-                </Text>
+                </Body>
               </View>
 
-              <View style={{ marginBottom: 20 }}>
-                <Text
-                  style={{ color: theme.muted, fontSize: 12, marginBottom: 4 }}
-                >
-                  {t("transaction.notes")}
-                </Text>
-                <Text style={{ color: theme.text, fontSize: 16 }}>
+              <View style={styles.detailRow}>
+                <Caption>{t("transaction.notes")}</Caption>
+                <Body>
                   {transaction.notes?.trim() ? transaction.notes : "-"}
-                </Text>
+                </Body>
               </View>
 
               {/* Action Buttons */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Button title={t("transaction.edit")} onPress={onEdit} />
+              <View style={styles.buttonRow}>
+                <View style={styles.buttonWrapper}>
+                  <Button
+                    title={t("transaction.edit")}
+                    onPress={onEdit}
+                    variant="primary"
+                  />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={styles.buttonWrapper}>
                   <Button
                     title={t("transaction.delete")}
-                    color={theme.loss}
                     onPress={onDelete}
+                    variant="destructive"
                   />
                 </View>
               </View>
@@ -278,3 +211,86 @@ export function TransactionDetailsBottomSheet({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  sheetContainer: {
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: radius.sm,
+    alignSelf: "center",
+    marginBottom: spacing.lg,
+  },
+  header: {
+    marginBottom: spacing.sm,
+  },
+  dateTypeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
+  transactionType: {
+    fontWeight: "600",
+    fontSize: 18,
+  },
+  content: {
+    gap: spacing.md,
+  },
+  mainInfoCard: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  amountSection: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  amountValue: {
+    fontWeight: "700",
+    marginBottom: spacing.xs,
+  },
+  metricsSection: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+  metricItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  buttonWrapper: {
+    flex: 1,
+  },
+});
