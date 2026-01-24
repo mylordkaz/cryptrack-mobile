@@ -6,19 +6,25 @@ import (
 )
 
 const (
-	// Cache TTL for coins list (2 hours due to API rate limits: 13 calls/24h)
-	coinsListTTL = 2 * time.Hour
+	latestPricesTTL  = 5 * time.Minute
+	historyHourlyTTL = 24 * time.Hour
+	historyDailyTTL  = 24 * time.Hour
+	historyMaxTTL    = 24 * time.Hour
 )
 
 // Cache provides thread-safe in-memory caching
 type Cache struct {
-	mu        sync.RWMutex
-	coinsList *CoinsResponse
+	mu            sync.RWMutex
+	latestPrices  map[string]*LatestPricesResponse
+	historyPrices map[string]*HistoryResponse
 }
 
 // NewCache creates a new in-memory cache
 func NewCache() *Cache {
-	c := &Cache{}
+	c := &Cache{
+		latestPrices:  make(map[string]*LatestPricesResponse),
+		historyPrices: make(map[string]*HistoryResponse),
+	}
 
 	// Start background cleanup goroutine
 	go c.cleanupExpired()
@@ -26,34 +32,62 @@ func NewCache() *Cache {
 	return c
 }
 
-// GetCoinsList retrieves cached coins list if it exists and hasn't expired
-func (c *Cache) GetCoinsList() (*CoinsResponse, bool) {
+// GetLatestPrices retrieves cached latest prices by key if not expired.
+func (c *Cache) GetLatestPrices(key string) (*LatestPricesResponse, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	if c.coinsList == nil {
+	latest := c.latestPrices[key]
+	if latest == nil {
 		return nil, false
 	}
 
-	// Check if expired (2 hours TTL)
-	if time.Since(c.coinsList.UpdatedAt) > coinsListTTL {
+	if time.Since(latest.UpdatedAt) > latestPricesTTL {
 		return nil, false
 	}
 
-	// Mark as cached
-	cached := *c.coinsList
+	cached := *latest
 	cached.Cached = true
 
 	return &cached, true
 }
 
-// SetCoinsList stores coins list in cache
-func (c *Cache) SetCoinsList(coins *CoinsResponse) {
+// SetLatestPrices stores latest prices in cache.
+func (c *Cache) SetLatestPrices(key string, prices *LatestPricesResponse) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	coins.UpdatedAt = time.Now()
-	c.coinsList = coins
+	prices.UpdatedAt = time.Now()
+	c.latestPrices[key] = prices
+}
+
+// GetHistory retrieves cached history by key if not expired.
+func (c *Cache) GetHistory(key string) (*HistoryResponse, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	history := c.historyPrices[key]
+	if history == nil {
+		return nil, false
+	}
+
+	if time.Since(history.UpdatedAt) > historyTTL(history.Days, history.Interval) {
+		return nil, false
+	}
+
+	cached := *history
+	cached.Cached = true
+
+	return &cached, true
+}
+
+// SetHistory stores history in cache.
+func (c *Cache) SetHistory(key string, history *HistoryResponse) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	history.UpdatedAt = time.Now()
+	c.historyPrices[key] = history
 }
 
 // cleanupExpired periodically removes expired coins list from cache
@@ -64,11 +98,30 @@ func (c *Cache) cleanupExpired() {
 	for range ticker.C {
 		c.mu.Lock()
 
-		// Clean expired coins list
-		if c.coinsList != nil && time.Since(c.coinsList.UpdatedAt) > coinsListTTL {
-			c.coinsList = nil
+		// Clean expired latest prices
+		for key, latest := range c.latestPrices {
+			if latest == nil || time.Since(latest.UpdatedAt) > latestPricesTTL {
+				delete(c.latestPrices, key)
+			}
+		}
+
+		// Clean expired history prices
+		for key, history := range c.historyPrices {
+			if history == nil || time.Since(history.UpdatedAt) > historyTTL(history.Days, history.Interval) {
+				delete(c.historyPrices, key)
+			}
 		}
 
 		c.mu.Unlock()
 	}
+}
+
+func historyTTL(days, interval string) time.Duration {
+	if days == "max" {
+		return historyMaxTTL
+	}
+	if interval == "hourly" {
+		return historyHourlyTTL
+	}
+	return historyDailyTTL
 }

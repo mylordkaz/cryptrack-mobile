@@ -9,7 +9,7 @@ export type CoinMetadata = {
   updated_at: number;
 };
 
-const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export async function saveCoinsBatch(
   coins: Array<{

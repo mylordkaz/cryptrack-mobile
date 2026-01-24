@@ -1,0 +1,596 @@
+{
+  "updated_at": "2026-01-24T01:03:11.88691+09:00",
+  "entries": [
+    {
+      "cmc_id": "1",
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "coingecko_id": "bitcoin"
+    },
+    {
+      "cmc_id": "1027",
+      "symbol": "ETH",
+      "name": "Ethereum",
+      "coingecko_id": "ethereum"
+    },
+    {
+      "cmc_id": "825",
+      "symbol": "USDT",
+      "name": "Tether USDt",
+      "coingecko_id": "tether"
+    },
+    {
+      "cmc_id": "1839",
+      "symbol": "BNB",
+      "name": "BNB",
+      "coingecko_id": "binancecoin"
+    },
+    {
+      "cmc_id": "52",
+      "symbol": "XRP",
+      "name": "XRP",
+      "coingecko_id": "ripple"
+    },
+    {
+      "cmc_id": "3408",
+      "symbol": "USDC",
+      "name": "USDC",
+      "coingecko_id": "usd-coin"
+    },
+    {
+      "cmc_id": "5426",
+      "symbol": "SOL",
+      "name": "Solana",
+      "coingecko_id": "solana"
+    },
+    {
+      "cmc_id": "1958",
+      "symbol": "TRX",
+      "name": "TRON",
+      "coingecko_id": "tron"
+    },
+    {
+      "cmc_id": "74",
+      "symbol": "DOGE",
+      "name": "Dogecoin",
+      "coingecko_id": "dogecoin"
+    },
+    {
+      "cmc_id": "2010",
+      "symbol": "ADA",
+      "name": "Cardano",
+      "coingecko_id": "cardano"
+    },
+    {
+      "cmc_id": "1831",
+      "symbol": "BCH",
+      "name": "Bitcoin Cash",
+      "coingecko_id": "bitcoin-cash"
+    },
+    {
+      "cmc_id": "328",
+      "symbol": "XMR",
+      "name": "Monero",
+      "coingecko_id": "monero"
+    },
+    {
+      "cmc_id": "1975",
+      "symbol": "LINK",
+      "name": "Chainlink",
+      "coingecko_id": "chainlink"
+    },
+    {
+      "cmc_id": "3957",
+      "symbol": "LEO",
+      "name": "UNUS SED LEO",
+      "coingecko_id": "leo-token"
+    },
+    {
+      "cmc_id": "512",
+      "symbol": "XLM",
+      "name": "Stellar",
+      "coingecko_id": "stellar"
+    },
+    {
+      "cmc_id": "29470",
+      "symbol": "USDE",
+      "name": "Ethena USDe",
+      "coingecko_id": "ethena-usde"
+    },
+    {
+      "cmc_id": "32196",
+      "symbol": "HYPE",
+      "name": "Hyperliquid",
+      "coingecko_id": "hyperliquid"
+    },
+    {
+      "cmc_id": "1437",
+      "symbol": "ZEC",
+      "name": "Zcash",
+      "coingecko_id": "zcash"
+    },
+    {
+      "cmc_id": "20947",
+      "symbol": "SUI",
+      "name": "Sui",
+      "coingecko_id": "sui"
+    },
+    {
+      "cmc_id": "37263",
+      "symbol": "CC",
+      "name": "Canton",
+      "coingecko_id": "canton-network"
+    },
+    { "cmc_id": "4943", "symbol": "DAI", "name": "Dai", "coingecko_id": "dai" },
+    {
+      "cmc_id": "5805",
+      "symbol": "AVAX",
+      "name": "Avalanche",
+      "coingecko_id": "avalanche-2"
+    },
+    {
+      "cmc_id": "2",
+      "symbol": "LTC",
+      "name": "Litecoin",
+      "coingecko_id": "litecoin"
+    },
+    {
+      "cmc_id": "4642",
+      "symbol": "HBAR",
+      "name": "Hedera",
+      "coingecko_id": "hedera-hashgraph"
+    },
+    {
+      "cmc_id": "5994",
+      "symbol": "SHIB",
+      "name": "Shiba Inu",
+      "coingecko_id": "shiba-inu"
+    },
+    {
+      "cmc_id": "33251",
+      "symbol": "WLFI",
+      "name": "World Liberty Financial",
+      "coingecko_id": "world-liberty-financial"
+    },
+    {
+      "cmc_id": "36148",
+      "symbol": "USD1",
+      "name": "World Liberty Financial USD",
+      "coingecko_id": "usd1-wlfi"
+    },
+    {
+      "cmc_id": "11419",
+      "symbol": "TON",
+      "name": "Toncoin",
+      "coingecko_id": "the-open-network"
+    },
+    {
+      "cmc_id": "27772",
+      "symbol": "PYUSD",
+      "name": "PayPal USD",
+      "coingecko_id": "paypal-usd"
+    },
+    {
+      "cmc_id": "3635",
+      "symbol": "CRO",
+      "name": "Cronos",
+      "coingecko_id": "crypto-com-chain"
+    },
+    {
+      "cmc_id": "6636",
+      "symbol": "DOT",
+      "name": "Polkadot",
+      "coingecko_id": "polkadot"
+    },
+    {
+      "cmc_id": "7083",
+      "symbol": "UNI",
+      "name": "Uniswap",
+      "coingecko_id": "uniswap"
+    },
+    {
+      "cmc_id": "27075",
+      "symbol": "MNT",
+      "name": "Mantle",
+      "coingecko_id": "mantle"
+    },
+    {
+      "cmc_id": "11092",
+      "symbol": "BGB",
+      "name": "Bitget Token",
+      "coingecko_id": "bitget-token"
+    },
+    {
+      "cmc_id": "22974",
+      "symbol": "TAO",
+      "name": "Bittensor",
+      "coingecko_id": "bittensor"
+    },
+    {
+      "cmc_id": "7278",
+      "symbol": "AAVE",
+      "name": "Aave",
+      "coingecko_id": "aave"
+    },
+    {
+      "cmc_id": "5176",
+      "symbol": "XAUT",
+      "name": "Tether Gold",
+      "coingecko_id": "tether-gold"
+    },
+    { "cmc_id": "3897", "symbol": "OKB", "name": "OKB", "coingecko_id": "okb" },
+    {
+      "cmc_id": "35491",
+      "symbol": "M",
+      "name": "MemeCore",
+      "coingecko_id": "memecore"
+    },
+    {
+      "cmc_id": "24478",
+      "symbol": "PEPE",
+      "name": "Pepe",
+      "coingecko_id": "pepe"
+    },
+    {
+      "cmc_id": "4705",
+      "symbol": "PAXG",
+      "name": "PAX Gold",
+      "coingecko_id": "pax-gold"
+    },
+    {
+      "cmc_id": "6535",
+      "symbol": "NEAR",
+      "name": "NEAR Protocol",
+      "coingecko_id": "near"
+    },
+    {
+      "cmc_id": "8916",
+      "symbol": "ICP",
+      "name": "Internet Computer",
+      "coingecko_id": "internet-computer"
+    },
+    {
+      "cmc_id": "1321",
+      "symbol": "ETC",
+      "name": "Ethereum Classic",
+      "coingecko_id": "ethereum-classic"
+    },
+    {
+      "cmc_id": "21159",
+      "symbol": "ONDO",
+      "name": "Ondo",
+      "coingecko_id": "ondo-finance"
+    },
+    {
+      "cmc_id": "33793",
+      "symbol": "USDG",
+      "name": "Global Dollar",
+      "coingecko_id": "global-dollar"
+    },
+    {
+      "cmc_id": "36341",
+      "symbol": "ASTER",
+      "name": "Aster",
+      "coingecko_id": "aster-2"
+    },
+    {
+      "cmc_id": "35697",
+      "symbol": "PI",
+      "name": "Pi",
+      "coingecko_id": "pi-network"
+    },
+    {
+      "cmc_id": "33038",
+      "symbol": "SKY",
+      "name": "Sky",
+      "coingecko_id": "sky"
+    },
+    {
+      "cmc_id": "36410",
+      "symbol": "MYX",
+      "name": "MYX Finance",
+      "coingecko_id": "myx-finance"
+    },
+    {
+      "cmc_id": "2087",
+      "symbol": "KCS",
+      "name": "KuCoin Token",
+      "coingecko_id": "kucoin-shares"
+    },
+    {
+      "cmc_id": "30171",
+      "symbol": "ENA",
+      "name": "Ethena",
+      "coingecko_id": "ethena"
+    },
+    {
+      "cmc_id": "28321",
+      "symbol": "POL",
+      "name": "Polygon (prev. MATIC)",
+      "coingecko_id": "polygon-ecosystem-token"
+    },
+    {
+      "cmc_id": "34387",
+      "symbol": "RLUSD",
+      "name": "Ripple USD",
+      "coingecko_id": "ripple-usd"
+    },
+    {
+      "cmc_id": "13502",
+      "symbol": "WLD",
+      "name": "Worldcoin",
+      "coingecko_id": "worldcoin-wld"
+    },
+    {
+      "cmc_id": "21794",
+      "symbol": "APT",
+      "name": "Aptos",
+      "coingecko_id": "aptos"
+    },
+    {
+      "cmc_id": "3794",
+      "symbol": "ATOM",
+      "name": "Cosmos",
+      "coingecko_id": "cosmos"
+    },
+    {
+      "cmc_id": "4269",
+      "symbol": "GT",
+      "name": "GateToken",
+      "coingecko_id": "gatechain-token"
+    },
+    {
+      "cmc_id": "19891",
+      "symbol": "USDD",
+      "name": "USDD",
+      "coingecko_id": "usdd"
+    },
+    {
+      "cmc_id": "20396",
+      "symbol": "KAS",
+      "name": "Kaspa",
+      "coingecko_id": "kaspa"
+    },
+    {
+      "cmc_id": "4030",
+      "symbol": "ALGO",
+      "name": "Algorand",
+      "coingecko_id": "algorand"
+    },
+    {
+      "cmc_id": "5690",
+      "symbol": "RENDER",
+      "name": "Render",
+      "coingecko_id": "render-token"
+    },
+    {
+      "cmc_id": "11841",
+      "symbol": "ARB",
+      "name": "Arbitrum",
+      "coingecko_id": "arbitrum"
+    },
+    {
+      "cmc_id": "35336",
+      "symbol": "TRUMP",
+      "name": "OFFICIAL TRUMP",
+      "coingecko_id": "official-trump"
+    },
+    {
+      "cmc_id": "2280",
+      "symbol": "FIL",
+      "name": "Filecoin",
+      "coingecko_id": "filecoin"
+    },
+    {
+      "cmc_id": "3155",
+      "symbol": "QNT",
+      "name": "Quant",
+      "coingecko_id": "quant-network"
+    },
+    {
+      "cmc_id": "39064",
+      "symbol": "NIGHT",
+      "name": "Midnight",
+      "coingecko_id": "midnight-3"
+    },
+    {
+      "cmc_id": "131",
+      "symbol": "DASH",
+      "name": "Dash",
+      "coingecko_id": "dash"
+    },
+    {
+      "cmc_id": "3077",
+      "symbol": "VET",
+      "name": "VeChain",
+      "coingecko_id": "vechain"
+    },
+    {
+      "cmc_id": "7950",
+      "symbol": "FLR",
+      "name": "Flare",
+      "coingecko_id": "flare-networks"
+    },
+    {
+      "cmc_id": "36507",
+      "symbol": "PUMP",
+      "name": "Pump.fun",
+      "coingecko_id": "pump-fun"
+    },
+    {
+      "cmc_id": "2634",
+      "symbol": "XDC",
+      "name": "XDC Network",
+      "coingecko_id": "xdce-crowd-sale"
+    },
+    {
+      "cmc_id": "23095",
+      "symbol": "BONK",
+      "name": "Bonk",
+      "coingecko_id": "bonk"
+    },
+    {
+      "cmc_id": "35626",
+      "symbol": "IP",
+      "name": "Story",
+      "coingecko_id": "story-2"
+    },
+    {
+      "cmc_id": "23149",
+      "symbol": "SEI",
+      "name": "Sei",
+      "coingecko_id": "sei-network"
+    },
+    {
+      "cmc_id": "39120",
+      "symbol": "U",
+      "name": "United Stables",
+      "coingecko_id": "united-stables"
+    },
+    {
+      "cmc_id": "7186",
+      "symbol": "CAKE",
+      "name": "PancakeSwap",
+      "coingecko_id": "pancakeswap-token"
+    },
+    {
+      "cmc_id": "26997",
+      "symbol": "ZRO",
+      "name": "LayerZero",
+      "coingecko_id": "layerzero"
+    },
+    {
+      "cmc_id": "2011",
+      "symbol": "XTZ",
+      "name": "Tezos",
+      "coingecko_id": "tezos"
+    },
+    {
+      "cmc_id": "34466",
+      "symbol": "PENGU",
+      "name": "Pudgy Penguins",
+      "coingecko_id": "pudgy-penguins"
+    },
+    {
+      "cmc_id": "29210",
+      "symbol": "JUP",
+      "name": "Jupiter",
+      "coingecko_id": "jupiter-exchange-solana"
+    },
+    {
+      "cmc_id": "2694",
+      "symbol": "NEXO",
+      "name": "Nexo",
+      "coingecko_id": "nexo"
+    },
+    {
+      "cmc_id": "11840",
+      "symbol": "OP",
+      "name": "Optimism",
+      "coingecko_id": "optimism"
+    },
+    {
+      "cmc_id": "4847",
+      "symbol": "STX",
+      "name": "Stacks",
+      "coingecko_id": "blockstack"
+    },
+    {
+      "cmc_id": "29420",
+      "symbol": "VIRTUAL",
+      "name": "Virtuals Protocol",
+      "coingecko_id": "virtual-protocol"
+    },
+    {
+      "cmc_id": "3773",
+      "symbol": "FET",
+      "name": "Artificial Superintelligence Alliance",
+      "coingecko_id": "fetch-ai"
+    },
+    {
+      "cmc_id": "6538",
+      "symbol": "CRV",
+      "name": "Curve DAO Token",
+      "coingecko_id": "curve-dao-token"
+    },
+    {
+      "cmc_id": "4066",
+      "symbol": "CHZ",
+      "name": "Chiliz",
+      "coingecko_id": "chiliz"
+    },
+    {
+      "cmc_id": "26081",
+      "symbol": "FDUSD",
+      "name": "First Digital USD",
+      "coingecko_id": "first-digital-usd"
+    },
+    {
+      "cmc_id": "10603",
+      "symbol": "IMX",
+      "name": "Immutable",
+      "coingecko_id": "immutable-x"
+    },
+    {
+      "cmc_id": "2563",
+      "symbol": "TUSD",
+      "name": "TrueUSD",
+      "coingecko_id": "true-usd"
+    },
+    {
+      "cmc_id": "6783",
+      "symbol": "AXS",
+      "name": "Axie Infinity",
+      "coingecko_id": "axie-infinity"
+    },
+    {
+      "cmc_id": "38515",
+      "symbol": "2Z",
+      "name": "DoubleZero",
+      "coingecko_id": "doublezero"
+    },
+    {
+      "cmc_id": "7226",
+      "symbol": "INJ",
+      "name": "Injective",
+      "coingecko_id": "injective-protocol"
+    },
+    {
+      "cmc_id": "34104",
+      "symbol": "MORPHO",
+      "name": "Morpho",
+      "coingecko_id": "morpho"
+    },
+    {
+      "cmc_id": "6210",
+      "symbol": "SAND",
+      "name": "The Sandbox",
+      "coingecko_id": "the-sandbox"
+    },
+    {
+      "cmc_id": "8000",
+      "symbol": "LDO",
+      "name": "Lido DAO",
+      "coingecko_id": "lido-dao"
+    },
+    {
+      "cmc_id": "29270",
+      "symbol": "AERO",
+      "name": "Aerodrome Finance",
+      "coingecko_id": "aerodrome-finance"
+    },
+    {
+      "cmc_id": "39125",
+      "symbol": "LIT",
+      "name": "Lighter",
+      "coingecko_id": "lighter"
+    },
+    {
+      "cmc_id": "29814",
+      "symbol": "ETHFI",
+      "name": "ether.fi",
+      "coingecko_id": "ether-fi"
+    }
+  ]
+}
+

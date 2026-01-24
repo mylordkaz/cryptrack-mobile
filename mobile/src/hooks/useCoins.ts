@@ -19,14 +19,42 @@ export type Coin = {
   price_change_percentage_24h: number;
 };
 
-type CoinsResponse = {
-  coins: Coin[];
+type CoinMetaResponse = {
+  coins: Array<{
+    id: string;
+    symbol: string;
+    name: string;
+    image: string;
+  }>;
+  timestamp: number;
+  cached: boolean;
+};
+
+type LatestPricesResponse = {
+  prices: Record<
+    string,
+    {
+      usd: number;
+      last_updated_at?: number;
+    }
+  >;
   timestamp: number;
   cached: boolean;
 };
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const buildCoinsFromMeta = (coins: CoinMetaResponse["coins"]): Coin[] =>
+  coins.map((coin) => ({
+    id: coin.id,
+    symbol: coin.symbol.toUpperCase(),
+    name: coin.name,
+    image: coin.image,
+    current_price: 0,
+    market_cap: 0,
+    market_cap_rank: 0,
+    price_change_percentage_24h: 0,
+  }));
 
 export function useCoins() {
   const [coins, setCoins] = useState<Coin[]>([]);
@@ -50,6 +78,7 @@ export function useCoins() {
 
         const hasCachedData = cachedCount > 0;
         const needsFetch = !hasCachedData || isStale;
+        let resolvedCoins: Coin[] = [];
 
         // If we have cached data, load it first for instant display
         if (hasCachedData && !cancelled) {
@@ -64,6 +93,7 @@ export function useCoins() {
             market_cap_rank: c.market_cap_rank ?? 0,
             price_change_percentage_24h: 0,
           }));
+          resolvedCoins = cachedCoinsList;
 
           if (!cancelled) {
             setCoins(cachedCoinsList);
@@ -76,70 +106,90 @@ export function useCoins() {
 
         // Fetch fresh data if needed
         if (needsFetch) {
-          const response = await fetch(`${API_BASE_URL}/coins`);
+          const response = await fetch(`${API_BASE_URL}/cmc/coins/meta`);
           if (!response.ok) {
             const text = await response.text();
             throw new Error(
-              `Failed to fetch coins (${response.status}): ${text || response.statusText}`
+              `Failed to fetch coin metadata (${response.status}): ${
+                text || response.statusText
+              }`
             );
           }
 
-          const data = (await response.json()) as CoinsResponse;
+          const data = (await response.json()) as CoinMetaResponse;
           if (cancelled) return;
 
-          // Build price map and prepare price rows
-          const map: Record<string, number> = {};
-          const priceRows = data.coins.map((coin) => {
-            const symbol = coin.symbol.toUpperCase();
-            map[symbol] = coin.current_price;
-            return {
-              asset_symbol: symbol,
-              price_fiat: coin.current_price,
-              fiat_currency: "USD",
-              source: "API" as const,
-              timestamp: data.timestamp,
-            };
-          });
+          const metaCoins = buildCoinsFromMeta(data.coins);
+          resolvedCoins = metaCoins;
 
-          // Save to database (prices and metadata)
-          await Promise.all([
-            insertPricesBatch(priceRows),
-            saveCoinsBatch(data.coins),
-          ]);
+          // Save to database (metadata only)
+          await saveCoinsBatch(data.coins);
 
           if (!cancelled) {
-            setCoins(data.coins);
-            setPriceMap(map);
+            setCoins(metaCoins);
           }
-        } else if (hasCachedData) {
-          // Use cached coins but fetch current prices
+        }
+
+        if (resolvedCoins.length > 0) {
+          const idToSymbol = new Map<string, string>();
+          resolvedCoins.forEach((coin) => {
+            idToSymbol.set(coin.id, coin.symbol.toUpperCase());
+          });
+
+          const priceRows: Array<{
+            asset_symbol: string;
+            price_fiat: number;
+            fiat_currency: "USD";
+            source: "API";
+            timestamp: number;
+          }> = [];
+
           try {
-            const response = await fetch(`${API_BASE_URL}/coins`);
-            if (response.ok) {
-              const data = (await response.json()) as CoinsResponse;
-              if (!cancelled) {
-                const map: Record<string, number> = {};
-                data.coins.forEach((coin) => {
-                  map[coin.symbol.toUpperCase()] = coin.current_price;
-                });
-                setPriceMap(map);
+            const prices: LatestPricesResponse["prices"] = {};
+            const timestamp = Date.now();
+            const response = await fetch(`${API_BASE_URL}/cmc/prices/latest`);
+            if (!response.ok) {
+              const text = await response.text();
+              throw new Error(
+                `Failed to fetch prices (${response.status}): ${
+                  text || response.statusText
+                }`
+              );
+            }
 
-                // Update coins with fresh prices
-                setCoins(data.coins);
+            const data = (await response.json()) as LatestPricesResponse;
+            Object.assign(prices, data.prices);
 
-                // Save price updates
-                const priceRows = data.coins.map((coin) => ({
-                  asset_symbol: coin.symbol.toUpperCase(),
-                  price_fiat: coin.current_price,
-                  fiat_currency: "USD",
-                  source: "API" as const,
-                  timestamp: data.timestamp,
-                }));
-                insertPricesBatch(priceRows);
+            const map: Record<string, number> = {};
+            const updatedCoins = resolvedCoins.map((coin) => {
+              const price = prices[coin.id]?.usd;
+              if (price !== undefined) {
+                const symbol = idToSymbol.get(coin.id);
+                if (symbol) {
+                  map[symbol] = price;
+                  priceRows.push({
+                    asset_symbol: symbol,
+                    price_fiat: price,
+                    fiat_currency: "USD",
+                    source: "API",
+                    timestamp,
+                  });
+                }
+                return { ...coin, current_price: price };
               }
+              return coin;
+            });
+
+            if (!cancelled) {
+              setPriceMap(map);
+              setCoins(updatedCoins);
+            }
+
+            if (priceRows.length > 0) {
+              await insertPricesBatch(priceRows);
             }
           } catch {
-            // Ignore price fetch errors when using cache
+            // Ignore price fetch errors when using metadata cache
           }
         }
       } catch (err) {

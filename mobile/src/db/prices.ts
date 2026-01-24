@@ -13,22 +13,27 @@ export async function insertPrices(row: PriceRow) {
   const db = await openDB();
   const now = Date.now();
 
-  await db.runAsync(
-    `
-      INSERT INTO prices (
-        id, asset_symbol, price_fiat, fiat_currency, source, timestamp, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
-    [
-      await uuid(),
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(`DELETE FROM prices WHERE asset_symbol = ?`, [
       row.asset_symbol,
-      row.price_fiat,
-      row.fiat_currency,
-      row.source,
-      row.timestamp,
-      now,
-    ],
-  );
+    ]);
+    await db.runAsync(
+      `
+        INSERT INTO prices (
+          id, asset_symbol, price_fiat, fiat_currency, source, timestamp, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+      [
+        await uuid(),
+        row.asset_symbol,
+        row.price_fiat,
+        row.fiat_currency,
+        row.source,
+        row.timestamp,
+        now,
+      ],
+    );
+  });
 }
 
 export async function insertPricesBatch(rows: PriceRow[]) {
@@ -38,6 +43,15 @@ export async function insertPricesBatch(rows: PriceRow[]) {
   const now = Date.now();
 
   await db.withTransactionAsync(async () => {
+    const symbols = Array.from(new Set(rows.map((row) => row.asset_symbol)));
+    if (symbols.length > 0) {
+      const placeholders = symbols.map(() => "?").join(", ");
+      await db.runAsync(
+        `DELETE FROM prices WHERE asset_symbol IN (${placeholders})`,
+        symbols,
+      );
+    }
+
     for (const row of rows) {
       await db.runAsync(
         `
