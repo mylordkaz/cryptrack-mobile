@@ -1,30 +1,32 @@
-import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator } from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { Card, Caption, BodyMedium } from "./ui";
-import { LineChart, PieChart, yAxisSides } from "react-native-gifted-charts";
+import { PieChart } from "react-native-gifted-charts";
+import { CartesianChart, Line } from "victory-native";
+import { useFont } from "@shopify/react-native-skia";
 import { useMemo, useState } from "react";
 import { t } from "@/src/i18n";
 import { AssetWithMetrics } from "@/src/math/types";
 
-const demoPerformanceData = [
-  { value: 420, label: "Jan" },
-  { value: 1040, label: "" },
-  { value: 1090, label: "Mar" },
-  { value: 1680, label: "" },
-  { value: 1530, label: "May" },
-  { value: 1525, label: "" },
-  { value: 1260, label: "Jul" },
-  { value: 1960, label: "" },
-  { value: 1490, label: "Sep" },
-  { value: 2140, label: "" },
-  { value: 2080, label: "Nov" },
-  { value: 2220, label: "" },
+const robotoFont = require("@/assets/fonts/Roboto-Regular.ttf");
+
+const demoHistoryData = [
+  { x: new Date("2024-01-18").getTime(), y: 420 },
+  { x: new Date("2024-01-19").getTime(), y: 480 },
+  { x: new Date("2024-01-20").getTime(), y: 510 },
+  { x: new Date("2024-01-21").getTime(), y: 2100 },
+  { x: new Date("2024-01-22").getTime(), y: 2850 },
+  { x: new Date("2024-01-23").getTime(), y: 3200 },
+  { x: new Date("2024-01-24").getTime(), y: 3841 },
 ];
 
-type ChartType = "performance" | "allocation";
-type TimePeriod = "24h" | "7D" | "30D" | "90D" | "all";
+const xLabels = ["01/18", "01/19", "01/20", "01/21", "01/22", "01/23", "01/24"];
+const yLabels = ["$0", "$1280", "$2560", "$3841"];
 
-const TIME_PERIODS: TimePeriod[] = ["24h", "7D", "30D", "90D", "all"];
+type ChartType = "performance" | "allocation";
+type TimePeriod = "7D" | "30D" | "90D" | "1Y";
+
+const TIME_PERIODS: TimePeriod[] = ["7D", "30D", "90D", "1Y"];
 
 interface PortfolioChartProps {
   assets: AssetWithMetrics[];
@@ -33,7 +35,8 @@ interface PortfolioChartProps {
 export function PortfolioChart({ assets }: PortfolioChartProps) {
   const { theme } = useTheme();
   const [chartType, setChartType] = useState<ChartType>("performance");
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("30D");
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
+  const font = useFont(robotoFont, 11);
 
   const allocationData = useMemo(() => {
     const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
@@ -113,72 +116,55 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
         {chartType === "performance" ? (
           <>
             <View style={styles.chartWrapper}>
-              <LineChart
-                data={demoPerformanceData}
-                curved
-                height={160}
-                thickness={2}
-                color={theme.accent}
-                hideDataPoints
-                hideRules
-                noOfSections={3}
-                maxValue={2400}
-                yAxisSide={yAxisSides.RIGHT}
-                yAxisLabelPrefix="$"
-                yAxisLabelWidth={52}
-                yAxisTextStyle={{ color: theme.textSecondary, fontSize: 11 }}
-                yAxisColor="transparent"
-                xAxisColor="transparent"
-                xAxisLabelTextStyle={{
-                  color: theme.textSecondary,
-                  fontSize: 11,
-                }}
-                backgroundColor=""
-                initialSpacing={10}
-                spacing={24}
-                endSpacing={18}
-                isAnimated
-                pointerConfig={{
-                  pointerStripUptoDataPoint: true,
-                  pointerStripColor: theme.muted,
-                  pointerStripWidth: 2,
-                  pointerColor: theme.accent,
-                  radius: 4,
-                  activatePointersOnLongPress: true,
-                  autoAdjustPointerLabelPosition: false,
-                  pointerLabelComponent: (items) => (
-                    <View
-                      style={{
-                        justifyContent: "center",
-                        height: 20,
-                        width: 60,
-                        marginTop: -30,
-                        marginLeft: -40,
-                        borderRadius: 6,
-                        borderWidth: 1,
-                        borderColor: theme.border,
-                      }}
+              {/* Chart area */}
+              <View style={styles.chartArea}>
+                {font ? (
+                  <CartesianChart
+                    data={demoHistoryData}
+                    xKey="x"
+                    yKeys={["y"]}
+                    domainPadding={{ top: 10, bottom: 10, left: 5, right: 5 }}
+                    axisOptions={{ font }}
+                  >
+                    {({ points }) => (
+                      <Line
+                        points={points.y}
+                        color={theme.accent}
+                        strokeWidth={2}
+                        curveType="natural"
+                      />
+                    )}
+                  </CartesianChart>
+                ) : (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator color={theme.accent} />
+                  </View>
+                )}
+
+                {/* X-axis labels */}
+                <View style={styles.xAxisLabels}>
+                  {xLabels.map((label, index) => (
+                    <Text
+                      key={index}
+                      style={[styles.axisLabel, { color: theme.textSecondary }]}
                     >
-                      <View
-                        style={{
-                          borderRadius: 16,
-                          backgroundColor: "white",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: theme.text,
-                            fontSize: 11,
-                            textAlign: "center",
-                          }}
-                        >
-                          ${items[0].value}
-                        </Text>
-                      </View>
-                    </View>
-                  ),
-                }}
-              />
+                      {label}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+
+              {/* Y-axis labels (right side) */}
+              <View style={styles.yAxisLabels}>
+                {yLabels.slice().reverse().map((label, index) => (
+                  <Text
+                    key={index}
+                    style={[styles.axisLabel, { color: theme.textSecondary }]}
+                  >
+                    {label}
+                  </Text>
+                ))}
+              </View>
             </View>
 
             <View style={styles.periodButtonsContainer}>
@@ -192,7 +178,7 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
                       styles.periodButton,
                       {
                         backgroundColor: isSelected
-                          ? theme.accent + "20"
+                          ? theme.accent
                           : "transparent",
                         opacity: pressed ? 0.7 : 1,
                       },
@@ -200,7 +186,7 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
                   >
                     <Caption
                       style={{
-                        color: isSelected ? theme.accent : theme.textSecondary,
+                        color: isSelected ? theme.bg : theme.textSecondary,
                         fontWeight: isSelected ? "600" : "400",
                       }}
                     >
@@ -274,22 +260,47 @@ const styles = StyleSheet.create({
     }),
   },
   chartWrapper: {
-    paddingTop: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    height: 220,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.sm,
+    flexDirection: "row",
+  },
+  yAxisLabels: {
+    width: 50,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingLeft: spacing.xs,
+    paddingBottom: 20,
+  },
+  chartArea: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  xAxisLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: spacing.xs,
+    height: 20,
+  },
+  axisLabel: {
+    fontSize: 11,
   },
   periodButtonsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: spacing.lg,
+    justifyContent: "center",
+    marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   periodButton: {
-    flex: 1,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
     alignItems: "center",
   },
   pieChartContainer: {
