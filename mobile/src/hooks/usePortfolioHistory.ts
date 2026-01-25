@@ -56,12 +56,15 @@ export function usePortfolioHistory(symbols: string[]) {
   const [data, setData] = useState<Array<{ x: number; y: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const symbolsKey = symbols.map((s) => s.toUpperCase()).sort().join(",");
+  const normalizedSymbols = Array.from(
+    new Set(symbols.map((s) => s.toUpperCase())),
+  );
+  const symbolsKey = normalizedSymbols.sort().join(",");
 
   useEffect(() => {
     let cancelled = false;
 
-    if (symbols.length === 0) {
+    if (normalizedSymbols.length === 0) {
       setData([]);
       setError(null);
       setLoading(false);
@@ -76,9 +79,7 @@ export function usePortfolioHistory(symbols: string[]) {
         setError(null);
 
         const transactions = await getAllTransactionsOrdered();
-        const symbols = Array.from(
-          new Set(transactions.map((tx) => tx.asset_symbol.toUpperCase())),
-        );
+        const symbols = normalizedSymbols;
 
         if (symbols.length === 0) {
           if (!cancelled) {
@@ -113,16 +114,18 @@ export function usePortfolioHistory(symbols: string[]) {
           }),
         );
 
+        const symbolSet = new Set(symbols);
         const txBySymbol = new Map<string, Transaction[]>();
         for (const tx of transactions) {
           const symbol = tx.asset_symbol.toUpperCase();
+          if (!symbolSet.has(symbol)) continue;
           const list = txBySymbol.get(symbol) ?? [];
           list.push(tx);
           txBySymbol.set(symbol, list);
         }
 
         const dayStarts = buildDayRange(HISTORY_DAYS);
-        const symbolsList = Array.from(txBySymbol.keys());
+        const symbolsList = symbols;
         const txIndices = new Map<string, number>();
         const holdings = new Map<string, number>();
         const lastPrices = new Map<string, number>();
