@@ -552,11 +552,11 @@ const styles = StyleSheet.create({
     }),
   },
   chartWrapper: {
-    height: 280,
+    height: 240,
     paddingTop: spacing.md,
     paddingLeft: 0,
     paddingRight: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.sm,
   },
   chartArea: {
     flex: 1,
