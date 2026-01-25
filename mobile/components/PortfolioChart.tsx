@@ -156,16 +156,23 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     setTooltipLabel(dateStr);
   }, []);
 
-  const handleValueChange = useCallback((value: number) => {
-    onValueChange?.(value);
-  }, [onValueChange]);
+  const handleValueChange = useCallback(
+    (value: number) => {
+      onValueChange?.(value);
+    },
+    [onValueChange],
+  );
 
   const handleReset = useCallback(() => {
     onValueChange?.(null);
   }, [onValueChange]);
 
   useAnimatedReaction(
-    () => ({ x: pressState.x.value.value, y: pressState.y.y.value.value, active: isActive }),
+    () => ({
+      x: pressState.x.value.value,
+      y: pressState.y.y.value.value,
+      active: isActive,
+    }),
     (current, prev) => {
       // Only update when actively pressing
       if (current.active && (current.x !== prev?.x || current.y !== prev?.y)) {
@@ -279,7 +286,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                     data={chartData}
                     xKey="x"
                     yKeys={["y"]}
-                    domainPadding={{ top: 10, bottom: 10, left: 5, right: 5 }}
+                    domainPadding={{ top: 20, bottom: 10, left: 5, right: 5 }}
                     chartPressState={pressState}
                     chartPressConfig={{
                       pan: {
@@ -294,7 +301,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                           points={points.y}
                           color={theme.accent}
                           strokeWidth={2}
-                          curveType="natural"
+                          curveType="monotoneX"
                         />
                         {isActive && (
                           <>
@@ -477,7 +484,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     paddingLeft: spacing.xs,
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   chartArea: {
     flex: 1,
