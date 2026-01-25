@@ -132,3 +132,9 @@ What NOT to do early
 * ❌ Auto-reconciliation
 * ❌ Fancy charts
 These destroy focus.
+
+---
+
+Development (Mobile)
+* Build and run the dev client (Skia/victory-native support): `npx expo run:ios`
+* Start Metro for the dev client: `npx expo start --dev-client`

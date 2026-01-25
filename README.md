@@ -106,3 +106,10 @@ If the backend goes offline, **the app still works**.
 ---
 
 This is a lightweight, durable architecture optimized for correctness, user trust, and long-term stability rather than feature sprawl or centralization.
+
+---
+
+### Development (Mobile)
+
+* Build and run the dev client (Skia/victory-native support): `cd mobile && npx expo run:ios`
+* Start Metro for the dev client: `cd mobile && npx expo start --dev-client`

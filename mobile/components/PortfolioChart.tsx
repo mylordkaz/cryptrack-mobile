@@ -3,13 +3,11 @@ import { useTheme, spacing, radius } from "@/src/theme";
 import { Card, Caption, BodyMedium } from "./ui";
 import { PieChart } from "react-native-gifted-charts";
 import { CartesianChart, Line } from "victory-native";
-import { useFont } from "@shopify/react-native-skia";
 import { useMemo, useState } from "react";
 import { t } from "@/src/i18n";
 import { AssetWithMetrics } from "@/src/math/types";
-
-const robotoFont = require("@/assets/fonts/Roboto-Regular.ttf");
-
+import { usePortfolioHistory } from "@/src/hooks/usePortfolioHistory";
+ 
 type ChartType = "performance" | "allocation";
 type TimePeriod = "7D" | "30D" | "90D" | "1Y";
 
@@ -22,29 +20,6 @@ const PERIOD_CONFIG: Record<TimePeriod, { days: number; pointInterval: number; l
   "90D": { days: 90, pointInterval: 3, labelInterval: 5 },   // 30 points, label every 5th point (= 15 days)
   "1Y": { days: 365, pointInterval: 15, labelInterval: 4 },  // ~24 points, label every 4th (~2 months)
 };
-
-// Generate demo data points for a given number of days with specified interval
-function generateDemoData(days: number, pointInterval: number): Array<{ x: number; y: number }> {
-  const endDate = new Date("2024-01-24");
-  const data: Array<{ x: number; y: number }> = [];
-
-  // Generate a somewhat realistic price curve
-  const baseValue = 400;
-  for (let i = days - 1; i >= 0; i -= pointInterval) {
-    const date = new Date(endDate);
-    date.setDate(date.getDate() - i);
-
-    // Add some randomness but trend upward
-    const progress = (days - i) / days;
-    const trend = progress * 3400; // Trend from ~400 to ~3800
-    const noise = Math.sin(i * 0.5) * 200 + Math.random() * 100;
-    const value = Math.max(0, baseValue + trend + noise);
-
-    data.push({ x: date.getTime(), y: Math.round(value) });
-  }
-
-  return data;
-}
 
 // Generate X-axis labels based on data and interval
 function generateXLabels(
@@ -64,6 +39,7 @@ function generateXLabels(
 
 // Calculate Y-axis labels based on data range
 function generateYLabels(data: Array<{ y: number }>): string[] {
+  if (data.length === 0) return ["$0", "$0", "$0", "$0"];
   const maxY = Math.max(...data.map((d) => d.y));
   const step = Math.ceil(maxY / 3 / 100) * 100; // Round to nearest 100
   return ["$0", `$${step}`, `$${step * 2}`, `$${Math.ceil(maxY / 100) * 100}`];
@@ -79,13 +55,30 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
   const { theme } = useTheme();
   const [chartType, setChartType] = useState<ChartType>("performance");
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
-  const font = useFont(robotoFont, 11);
+  const { data: historyData, loading: historyLoading } = usePortfolioHistory(
+    assets.map((asset) => asset.symbol),
+  );
 
   // Generate chart data based on selected period
   const chartData = useMemo(() => {
     const { days, pointInterval } = PERIOD_CONFIG[selectedPeriod];
-    return generateDemoData(days, pointInterval);
-  }, [selectedPeriod]);
+    if (historyData.length === 0) return [];
+
+    const sliced = historyData.slice(-days);
+    const sampled: Array<{ x: number; y: number }> = [];
+
+    for (let i = 0; i < sliced.length; i += pointInterval) {
+      sampled.push(sliced[i]);
+    }
+
+    const currentTotal = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+    if (sampled.length > 0 && currentTotal > 0) {
+      const last = sampled[sampled.length - 1];
+      sampled[sampled.length - 1] = { ...last, y: currentTotal };
+    }
+
+    return sampled;
+  }, [assets, historyData, selectedPeriod]);
 
   // Generate X-axis labels (only show every Nth label)
   const xAxisLabels = useMemo(() => {
@@ -178,13 +171,13 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
             <View style={styles.chartWrapper}>
               {/* Chart area */}
               <View style={styles.chartArea}>
-                {font ? (
+                {chartData.length > 1 ? (
                   <CartesianChart
                     data={chartData}
                     xKey="x"
                     yKeys={["y"]}
                     domainPadding={{ top: 10, bottom: 10, left: 5, right: 5 }}
-                    axisOptions={{ font }}
+                    renderOutside={() => null}
                   >
                     {({ points }) => (
                       <Line
@@ -195,9 +188,15 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
                       />
                     )}
                   </CartesianChart>
-                ) : (
+                ) : historyLoading ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator color={theme.accent} />
+                  </View>
+                ) : (
+                  <View style={styles.loadingContainer}>
+                    <Caption style={{ color: theme.textSecondary }}>
+                      {t("common.noData")}
+                    </Caption>
                   </View>
                 )}
 
