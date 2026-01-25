@@ -1,30 +1,47 @@
-import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { Card, Caption, BodyMedium } from "./ui";
 import { PieChart } from "react-native-gifted-charts";
-import { CartesianChart, Line } from "victory-native";
-import { useMemo, useState } from "react";
+import { CartesianChart, Line, useChartPressState } from "victory-native";
+import { Circle } from "@shopify/react-native-skia";
+import { useMemo, useState, useCallback } from "react";
+import Animated, {
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  runOnJS,
+} from "react-native-reanimated";
 import { t } from "@/src/i18n";
 import { AssetWithMetrics } from "@/src/math/types";
 import { usePortfolioHistory } from "@/src/hooks/usePortfolioHistory";
- 
+
 type ChartType = "performance" | "allocation";
 type TimePeriod = "7D" | "30D" | "90D" | "1Y";
 
 // Configuration for each time period
 // pointInterval: how many days between data points
 // labelInterval: how many data points between X-axis labels
-const PERIOD_CONFIG: Record<TimePeriod, { days: number; pointInterval: number; labelInterval: number }> = {
-  "7D": { days: 7, pointInterval: 1, labelInterval: 1 },     // 7 points, all labeled
-  "30D": { days: 30, pointInterval: 1, labelInterval: 6 },   // 30 points, label every 6
-  "90D": { days: 90, pointInterval: 3, labelInterval: 5 },   // 30 points, label every 5th point (= 15 days)
-  "1Y": { days: 365, pointInterval: 15, labelInterval: 4 },  // ~24 points, label every 4th (~2 months)
+const PERIOD_CONFIG: Record<
+  TimePeriod,
+  { days: number; pointInterval: number; labelInterval: number }
+> = {
+  "7D": { days: 7, pointInterval: 1, labelInterval: 1 }, // 7 points, all labeled
+  "30D": { days: 30, pointInterval: 1, labelInterval: 6 }, // 30 points, label every 6
+  "90D": { days: 90, pointInterval: 3, labelInterval: 5 }, // 30 points, label every 5th point (= 15 days)
+  "1Y": { days: 365, pointInterval: 15, labelInterval: 4 }, // ~24 points, label every 4th (~2 months)
 };
 
 // Generate X-axis labels based on data and interval
 function generateXLabels(
   data: Array<{ x: number }>,
-  labelInterval: number
+  labelInterval: number,
 ): Array<{ label: string; index: number }> {
   const labels: Array<{ label: string; index: number }> = [];
 
@@ -46,18 +63,29 @@ function generateYLabels(data: Array<{ y: number }>): string[] {
 }
 
 const TIME_PERIODS: TimePeriod[] = ["7D", "30D", "90D", "1Y"];
+const TOOLTIP_WIDTH = 62;
+const TOOLTIP_HEIGHT = 24;
+const TOOLTIP_OFFSET = 8;
 
 interface PortfolioChartProps {
   assets: AssetWithMetrics[];
+  onValueChange?: (value: number | null) => void;
 }
 
-export function PortfolioChart({ assets }: PortfolioChartProps) {
+export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
   const { theme } = useTheme();
   const [chartType, setChartType] = useState<ChartType>("performance");
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
   const { data: historyData, loading: historyLoading } = usePortfolioHistory(
     assets.map((asset) => asset.symbol),
   );
+  const [tooltipLabel, setTooltipLabel] = useState("");
+  const chartWidth = useSharedValue(0);
+  const chartHeight = useSharedValue(0);
+  const { state: pressState, isActive } = useChartPressState({
+    x: 0,
+    y: { y: 0 },
+  });
 
   // Generate chart data based on selected period
   const chartData = useMemo(() => {
@@ -71,7 +99,10 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
       sampled.push(sliced[i]);
     }
 
-    const currentTotal = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+    const currentTotal = assets.reduce(
+      (sum, asset) => sum + asset.currentValue,
+      0,
+    );
     if (sampled.length > 0 && currentTotal > 0) {
       const last = sampled[sampled.length - 1];
       sampled[sampled.length - 1] = { ...last, y: currentTotal };
@@ -92,7 +123,10 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
   }, [chartData]);
 
   const allocationData = useMemo(() => {
-    const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+    const totalValue = assets.reduce(
+      (sum, asset) => sum + asset.currentValue,
+      0,
+    );
     if (totalValue <= 0) return [];
 
     const palette = [
@@ -112,6 +146,69 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
       };
     });
   }, [assets, theme]);
+
+  const updateTooltipLabel = useCallback((timestamp: number, value: number) => {
+    if (!Number.isFinite(timestamp)) return;
+    const date = new Date(timestamp);
+    const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+      date.getDate(),
+    ).padStart(2, "0")}`;
+    setTooltipLabel(dateStr);
+  }, []);
+
+  const handleValueChange = useCallback((value: number) => {
+    onValueChange?.(value);
+  }, [onValueChange]);
+
+  const handleReset = useCallback(() => {
+    onValueChange?.(null);
+  }, [onValueChange]);
+
+  useAnimatedReaction(
+    () => ({ x: pressState.x.value.value, y: pressState.y.y.value.value, active: isActive }),
+    (current, prev) => {
+      // Only update when actively pressing
+      if (current.active && (current.x !== prev?.x || current.y !== prev?.y)) {
+        runOnJS(updateTooltipLabel)(current.x, current.y);
+        runOnJS(handleValueChange)(current.y);
+      }
+    },
+    [updateTooltipLabel, handleValueChange],
+  );
+
+  // Reset value when touch ends
+  useAnimatedReaction(
+    () => isActive,
+    (active, prev) => {
+      if (prev === true && active === false) {
+        runOnJS(handleReset)();
+      }
+    },
+    [handleReset],
+  );
+
+  const tooltipStyle = useAnimatedStyle(() => {
+    const width = chartWidth.value || 0;
+    const height = chartHeight.value || 0;
+    const x = pressState.x.position.value;
+    const y = pressState.y.y.position.value;
+
+    // Account for x-axis labels (20px from styles.xAxisLabels height)
+    const chartOnlyHeight = height - 20;
+
+    const clampedX = Math.min(
+      Math.max(x - TOOLTIP_WIDTH / 2, 0),
+      Math.max(0, width - TOOLTIP_WIDTH),
+    );
+    const clampedY = Math.min(
+      Math.max(y - TOOLTIP_HEIGHT - TOOLTIP_OFFSET, 0),
+      Math.max(0, chartOnlyHeight - TOOLTIP_HEIGHT),
+    );
+    return {
+      transform: [{ translateX: clampedX }, { translateY: clampedY }],
+      opacity: isActive ? 1 : 0,
+    };
+  });
 
   return (
     <View style={styles.chartContainer}>
@@ -170,22 +267,54 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
           <>
             <View style={styles.chartWrapper}>
               {/* Chart area */}
-              <View style={styles.chartArea}>
+              <View
+                style={styles.chartArea}
+                onLayout={(event) => {
+                  chartWidth.value = event.nativeEvent.layout.width;
+                  chartHeight.value = event.nativeEvent.layout.height;
+                }}
+              >
                 {chartData.length > 1 ? (
                   <CartesianChart
                     data={chartData}
                     xKey="x"
                     yKeys={["y"]}
                     domainPadding={{ top: 10, bottom: 10, left: 5, right: 5 }}
+                    chartPressState={pressState}
+                    chartPressConfig={{
+                      pan: {
+                        activateAfterLongPress: 0,
+                      },
+                    }}
                     renderOutside={() => null}
                   >
                     {({ points }) => (
-                      <Line
-                        points={points.y}
-                        color={theme.accent}
-                        strokeWidth={2}
-                        curveType="natural"
-                      />
+                      <>
+                        <Line
+                          points={points.y}
+                          color={theme.accent}
+                          strokeWidth={2}
+                          curveType="natural"
+                        />
+                        {isActive && (
+                          <>
+                            <Circle
+                              cx={pressState.x.position}
+                              cy={pressState.y.y.position}
+                              r={8}
+                              color={theme.surface}
+                              opacity={1}
+                            />
+                            <Circle
+                              cx={pressState.x.position}
+                              cy={pressState.y.y.position}
+                              r={5}
+                              color={theme.accent}
+                              opacity={1}
+                            />
+                          </>
+                        )}
+                      </>
                     )}
                   </CartesianChart>
                 ) : historyLoading ? (
@@ -199,6 +328,22 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
                     </Caption>
                   </View>
                 )}
+
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.tooltip,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                    },
+                    tooltipStyle,
+                  ]}
+                >
+                  <Text style={[styles.tooltipText, { color: theme.text }]}>
+                    {tooltipLabel}
+                  </Text>
+                </Animated.View>
 
                 {/* X-axis labels */}
                 <View style={styles.xAxisLabels}>
@@ -215,14 +360,17 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
 
               {/* Y-axis labels (right side) */}
               <View style={styles.yAxisLabels}>
-                {yAxisLabels.slice().reverse().map((label, index) => (
-                  <Text
-                    key={index}
-                    style={[styles.axisLabel, { color: theme.textSecondary }]}
-                  >
-                    {label}
-                  </Text>
-                ))}
+                {yAxisLabels
+                  .slice()
+                  .reverse()
+                  .map((label, index) => (
+                    <Text
+                      key={index}
+                      style={[styles.axisLabel, { color: theme.textSecondary }]}
+                    >
+                      {label}
+                    </Text>
+                  ))}
               </View>
             </View>
 
@@ -347,6 +495,19 @@ const styles = StyleSheet.create({
   },
   axisLabel: {
     fontSize: 11,
+  },
+  tooltip: {
+    position: "absolute",
+    width: TOOLTIP_WIDTH,
+    height: TOOLTIP_HEIGHT,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tooltipText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   periodButtonsContainer: {
     flexDirection: "row",

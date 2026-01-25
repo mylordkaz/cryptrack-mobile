@@ -1,9 +1,5 @@
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { usePortfolioMetrics } from "../src/hooks/usePortfolioMetrics";
 import { useCoins } from "@/src/hooks/useCoins";
 import { useTheme, spacing } from "@/src/theme";
@@ -20,6 +16,7 @@ import { useCallback, useRef, useState } from "react";
 export default function PortfolioRecapScreen() {
   const { theme } = useTheme();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [displayedValue, setDisplayedValue] = useState<number | null>(null);
   const isFirstFocus = useRef(true);
   const { priceMap, loading: pricesLoading } = useCoins();
   const { portfolio, loading, error } = usePortfolioMetrics(priceMap, refreshKey);
@@ -87,14 +84,17 @@ export default function PortfolioRecapScreen() {
       contentContainerStyle={styles.scrollContent}
     >
       <PortfolioTopSection
-        totalValue={portfolio.totalValue}
+        totalValue={displayedValue ?? portfolio.totalValue}
         totalInvested={portfolio.totalInvested}
         totalPnL={portfolio.totalPnL}
         totalPnLPercentage={portfolio.totalPnLPercentage}
         theme={theme}
       />
 
-      <PortfolioChart assets={portfolio.assets} />
+      <PortfolioChart
+        assets={portfolio.assets}
+        onValueChange={setDisplayedValue}
+      />
 
       <AssetList assets={portfolio.assets} />
     </ScrollView>
