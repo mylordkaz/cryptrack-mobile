@@ -10,7 +10,7 @@ import { useTheme, spacing, radius } from "@/src/theme";
 import { Card, Caption, BodyMedium } from "./ui";
 import { PieChart } from "react-native-gifted-charts";
 import { CartesianChart, Line, useChartPressState } from "victory-native";
-import { Circle } from "@shopify/react-native-skia";
+import { Circle, useFont } from "@shopify/react-native-skia";
 import { useMemo, useState, useCallback } from "react";
 import Animated, {
   useAnimatedReaction,
@@ -21,6 +21,7 @@ import Animated, {
 import { t } from "@/src/i18n";
 import { AssetWithMetrics } from "@/src/math/types";
 import { usePortfolioHistory } from "@/src/hooks/usePortfolioHistory";
+import robotoRegular from "@/assets/fonts/Roboto-Regular.ttf";
 
 type ChartType = "performance" | "allocation";
 type TimePeriod = "7D" | "30D" | "90D" | "1Y";
@@ -40,13 +41,13 @@ const PERIOD_CONFIG: Record<
 
 // Generate X-axis labels based on data and interval
 function generateXLabels(
-  data: Array<{ x: number }>,
+  data: Array<{ date: number }>,
   labelInterval: number,
 ): Array<{ label: string; index: number }> {
   const labels: Array<{ label: string; index: number }> = [];
 
   for (let i = 0; i < data.length; i += labelInterval) {
-    const date = new Date(data[i].x);
+    const date = new Date(data[i].date);
     const label = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
     labels.push({ label, index: i });
   }
@@ -54,12 +55,59 @@ function generateXLabels(
   return labels;
 }
 
-// Calculate Y-axis labels based on data range
-function generateYLabels(data: Array<{ y: number }>): string[] {
-  if (data.length === 0) return ["$0", "$0", "$0", "$0"];
-  const maxY = Math.max(...data.map((d) => d.y));
-  const step = Math.ceil(maxY / 3 / 100) * 100; // Round to nearest 100
-  return ["$0", `$${step}`, `$${step * 2}`, `$${Math.ceil(maxY / 100) * 100}`];
+// Generate nice tick values for Y-axis
+function generateYAxisTicks(data: Array<{ y: number }>): number[] {
+  if (data.length === 0) return [0, 1000, 2000, 3000, 4000];
+
+  const values = data.map((d) => d.y).filter((val) => Number.isFinite(val));
+  if (values.length === 0) return [0, 1000, 2000, 3000, 4000];
+
+  const maxY = Math.max(...values);
+  const minY = Math.min(...values);
+  let range = maxY - minY;
+  if (range === 0) {
+    range = maxY === 0 ? 1 : Math.abs(maxY) * 0.1;
+  }
+
+  // Target 4-5 ticks
+  const roughStep = range / 4;
+
+  // Find the magnitude (power of 10)
+  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+
+  // Normalize to get a number between 1 and 10
+  const normalized = roughStep / magnitude;
+
+  // Round to nice number (1, 2, 5, or 10)
+  let niceStep;
+  if (normalized <= 1.5) {
+    niceStep = 1 * magnitude;
+  } else if (normalized <= 3) {
+    niceStep = 2 * magnitude;
+  } else if (normalized <= 7) {
+    niceStep = 5 * magnitude;
+  } else {
+    niceStep = 10 * magnitude;
+  }
+
+  // Generate ticks starting from a nice min
+  const niceMin = Math.floor(minY / niceStep) * niceStep;
+  const niceMax = Math.ceil(maxY / niceStep) * niceStep;
+
+  const ticks: number[] = [];
+  let currentTick = niceMin;
+  while (currentTick <= niceMax) {
+    ticks.push(currentTick);
+    currentTick += niceStep;
+  }
+
+  // Ensure at least 4 ticks
+  while (ticks.length < 4) {
+    ticks.unshift(ticks[0] - niceStep);
+    ticks.push(ticks[ticks.length - 1] + niceStep);
+  }
+
+  return ticks;
 }
 
 const TIME_PERIODS: TimePeriod[] = ["7D", "30D", "90D", "1Y"];
@@ -80,6 +128,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     assets.map((asset) => asset.symbol),
   );
   const [tooltipLabel, setTooltipLabel] = useState("");
+  const axisFont = useFont(robotoRegular, 11);
   const chartWidth = useSharedValue(0);
   const chartHeight = useSharedValue(0);
   const { state: pressState, isActive } = useChartPressState({
@@ -93,10 +142,14 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     if (historyData.length === 0) return [];
 
     const sliced = historyData.slice(-days);
-    const sampled: Array<{ x: number; y: number }> = [];
+    const sampled: Array<{ x: number; y: number; date: number }> = [];
 
     for (let i = 0; i < sliced.length; i += pointInterval) {
-      sampled.push(sliced[i]);
+      sampled.push({
+        x: sampled.length,
+        y: sliced[i].y,
+        date: sliced[i].x,
+      });
     }
 
     const currentTotal = assets.reduce(
@@ -117,9 +170,9 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     return generateXLabels(chartData, labelInterval);
   }, [chartData, selectedPeriod]);
 
-  // Generate Y-axis labels based on data range
-  const yAxisLabels = useMemo(() => {
-    return generateYLabels(chartData);
+  // Generate Y-axis tick values based on data range
+  const yAxisTickValues = useMemo(() => {
+    return generateYAxisTicks(chartData);
   }, [chartData]);
 
   const allocationData = useMemo(() => {
@@ -147,14 +200,18 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     });
   }, [assets, theme]);
 
-  const updateTooltipLabel = useCallback((timestamp: number, value: number) => {
-    if (!Number.isFinite(timestamp)) return;
-    const date = new Date(timestamp);
-    const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-      date.getDate(),
-    ).padStart(2, "0")}`;
-    setTooltipLabel(dateStr);
-  }, []);
+  const updateTooltipLabel = useCallback(
+    (index: number) => {
+      const item = chartData[index];
+      if (!item) return;
+      const date = new Date(item.date);
+      const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+        date.getDate(),
+      ).padStart(2, "0")}`;
+      setTooltipLabel(dateStr);
+    },
+    [chartData],
+  );
 
   const handleValueChange = useCallback(
     (value: number) => {
@@ -169,14 +226,18 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
 
   useAnimatedReaction(
     () => ({
-      x: pressState.x.value.value,
+      index: pressState.matchedIndex.value,
       y: pressState.y.y.value.value,
       active: isActive,
     }),
     (current, prev) => {
       // Only update when actively pressing
-      if (current.active && (current.x !== prev?.x || current.y !== prev?.y)) {
-        runOnJS(updateTooltipLabel)(current.x, current.y);
+      if (
+        current.active &&
+        current.index >= 0 &&
+        (current.index !== prev?.index || current.y !== prev?.y)
+      ) {
+        runOnJS(updateTooltipLabel)(current.index);
         runOnJS(handleValueChange)(current.y);
       }
     },
@@ -200,16 +261,13 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     const x = pressState.x.position.value;
     const y = pressState.y.y.position.value;
 
-    // Account for x-axis labels (20px from styles.xAxisLabels height)
-    const chartOnlyHeight = height - 20;
-
     const clampedX = Math.min(
       Math.max(x - TOOLTIP_WIDTH / 2, 0),
       Math.max(0, width - TOOLTIP_WIDTH),
     );
     const clampedY = Math.min(
       Math.max(y - TOOLTIP_HEIGHT - TOOLTIP_OFFSET, 0),
-      Math.max(0, chartOnlyHeight - TOOLTIP_HEIGHT),
+      Math.max(0, height - TOOLTIP_HEIGHT),
     );
     return {
       transform: [{ translateX: clampedX }, { translateY: clampedY }],
@@ -286,14 +344,44 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                     data={chartData}
                     xKey="x"
                     yKeys={["y"]}
-                    domainPadding={{ top: 20, bottom: 10, left: 5, right: 5 }}
+                    domain={{ x: [0, Math.max(0, chartData.length - 1)] }}
+                    domainPadding={{ top: 24, bottom: 12, left: 0, right: 8 }}
+                    padding={{ left: 24, right: 0 }}
                     chartPressState={pressState}
                     chartPressConfig={{
                       pan: {
                         activateAfterLongPress: 0,
                       },
                     }}
-                    renderOutside={() => null}
+                    xAxis={{
+                      tickValues: xAxisLabels.map(({ index }) => index),
+                      labelColor: theme.textSecondary,
+                      font: axisFont ?? undefined,
+                      formatXLabel: (value) => {
+                        const item = chartData[Math.round(value)];
+                        if (!item) return "";
+                        const date = new Date(item.date);
+                        return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+                      },
+                      axisSide: "bottom",
+                      yAxisSide: "right",
+                      labelPosition: "outset",
+                      lineColor: "transparent",
+                      labelOffset: 8,
+                    }}
+                    yAxis={[
+                      {
+                        tickValues: yAxisTickValues,
+                        labelColor: theme.textSecondary,
+                        font: axisFont ?? undefined,
+                        formatYLabel: (value) =>
+                          `$${Math.round(value).toLocaleString()}`,
+                        axisSide: "right",
+                        labelPosition: "outset",
+                        lineColor: "transparent",
+                        labelOffset: 4,
+                      },
+                    ]}
                   >
                     {({ points }) => (
                       <>
@@ -351,33 +439,6 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                     {tooltipLabel}
                   </Text>
                 </Animated.View>
-
-                {/* X-axis labels */}
-                <View style={styles.xAxisLabels}>
-                  {xAxisLabels.map(({ label, index }) => (
-                    <Text
-                      key={index}
-                      style={[styles.axisLabel, { color: theme.textSecondary }]}
-                    >
-                      {label}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-
-              {/* Y-axis labels (right side) */}
-              <View style={styles.yAxisLabels}>
-                {yAxisLabels
-                  .slice()
-                  .reverse()
-                  .map((label, index) => (
-                    <Text
-                      key={index}
-                      style={[styles.axisLabel, { color: theme.textSecondary }]}
-                    >
-                      {label}
-                    </Text>
-                  ))}
               </View>
             </View>
 
@@ -474,17 +535,11 @@ const styles = StyleSheet.create({
     }),
   },
   chartWrapper: {
-    height: 220,
+    height: 250,
     paddingTop: spacing.md,
-    paddingHorizontal: spacing.sm,
-    flexDirection: "row",
-  },
-  yAxisLabels: {
-    width: 50,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingLeft: spacing.xs,
-    paddingBottom: 40,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.md,
+    paddingBottom: spacing.md,
   },
   chartArea: {
     flex: 1,
@@ -493,15 +548,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  xAxisLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: spacing.xs,
-    height: 20,
-  },
-  axisLabel: {
-    fontSize: 11,
   },
   tooltip: {
     position: "absolute",
