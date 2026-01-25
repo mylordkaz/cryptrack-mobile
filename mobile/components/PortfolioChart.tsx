@@ -10,7 +10,12 @@ import { useTheme, spacing, radius } from "@/src/theme";
 import { Card, Caption, BodyMedium } from "./ui";
 import { PieChart } from "react-native-gifted-charts";
 import { CartesianChart, Line, useChartPressState } from "victory-native";
-import { Circle, useFont } from "@shopify/react-native-skia";
+import {
+  Circle,
+  Line as SkiaLine,
+  vec,
+  useFont,
+} from "@shopify/react-native-skia";
 import { useMemo, useState, useCallback } from "react";
 import Animated, {
   useAnimatedReaction,
@@ -21,7 +26,7 @@ import Animated, {
 import { t } from "@/src/i18n";
 import { AssetWithMetrics } from "@/src/math/types";
 import { usePortfolioHistory } from "@/src/hooks/usePortfolioHistory";
-import robotoRegular from "@/assets/fonts/Roboto-Regular.ttf";
+import interRegular from "@/assets/fonts/Inter-Regular.ttf";
 
 type ChartType = "performance" | "allocation";
 type TimePeriod = "7D" | "30D" | "90D" | "1Y";
@@ -55,7 +60,7 @@ function generateXLabels(
   return labels;
 }
 
-// Generate nice tick values for Y-axis
+// Generate nice tick values for Y-axis (always 4 ticks starting from 0)
 function generateYAxisTicks(data: Array<{ y: number }>): number[] {
   if (data.length === 0) return [0, 1000, 2000, 3000, 4000];
 
@@ -63,51 +68,33 @@ function generateYAxisTicks(data: Array<{ y: number }>): number[] {
   if (values.length === 0) return [0, 1000, 2000, 3000, 4000];
 
   const maxY = Math.max(...values);
-  const minY = Math.min(...values);
-  let range = maxY - minY;
-  if (range === 0) {
-    range = maxY === 0 ? 1 : Math.abs(maxY) * 0.1;
-  }
+  if (maxY <= 0) return [0, 250, 500, 750, 1000];
 
-  // Target 4-5 ticks
-  const roughStep = range / 4;
+  // We want 4 ticks (3 intervals), starting from 0
+  // Find a nice step that divides evenly into 3 intervals
+  const targetStep = maxY / 3;
 
-  // Find the magnitude (power of 10)
-  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  // Get order of magnitude for the step
+  const stepMagnitude = Math.pow(10, Math.floor(Math.log10(targetStep)));
+  const normalizedStep = targetStep / stepMagnitude;
 
-  // Normalize to get a number between 1 and 10
-  const normalized = roughStep / magnitude;
+  // Round up to a nice step value
+  let niceStepMultiplier: number;
+  if (normalizedStep <= 1) niceStepMultiplier = 1;
+  else if (normalizedStep <= 1.4) niceStepMultiplier = 1.4;
+  else if (normalizedStep <= 2) niceStepMultiplier = 2;
+  else if (normalizedStep <= 2.5) niceStepMultiplier = 2.5;
+  else if (normalizedStep <= 3) niceStepMultiplier = 3;
+  else if (normalizedStep <= 4) niceStepMultiplier = 4;
+  else if (normalizedStep <= 5) niceStepMultiplier = 5;
+  else if (normalizedStep <= 7) niceStepMultiplier = 7;
+  else niceStepMultiplier = 10;
 
-  // Round to nice number (1, 2, 5, or 10)
-  let niceStep;
-  if (normalized <= 1.5) {
-    niceStep = 1 * magnitude;
-  } else if (normalized <= 3) {
-    niceStep = 2 * magnitude;
-  } else if (normalized <= 7) {
-    niceStep = 5 * magnitude;
-  } else {
-    niceStep = 10 * magnitude;
-  }
+  const niceStep = niceStepMultiplier * stepMagnitude;
+  const maxTick = niceStep * 3;
 
-  // Generate ticks starting from a nice min
-  const niceMin = Math.floor(minY / niceStep) * niceStep;
-  const niceMax = Math.ceil(maxY / niceStep) * niceStep;
-
-  const ticks: number[] = [];
-  let currentTick = niceMin;
-  while (currentTick <= niceMax) {
-    ticks.push(currentTick);
-    currentTick += niceStep;
-  }
-
-  // Ensure at least 4 ticks
-  while (ticks.length < 4) {
-    ticks.unshift(ticks[0] - niceStep);
-    ticks.push(ticks[ticks.length - 1] + niceStep);
-  }
-
-  return ticks;
+  // Return 4 evenly spaced ticks from 0 to maxTick
+  return [0, niceStep, niceStep * 2, maxTick];
 }
 
 const TIME_PERIODS: TimePeriod[] = ["7D", "30D", "90D", "1Y"];
@@ -128,7 +115,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     assets.map((asset) => asset.symbol),
   );
   const [tooltipLabel, setTooltipLabel] = useState("");
-  const axisFont = useFont(robotoRegular, 11);
+  const axisFont = useFont(interRegular, 11);
   const chartWidth = useSharedValue(0);
   const chartHeight = useSharedValue(0);
   const { state: pressState, isActive } = useChartPressState({
@@ -344,9 +331,12 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                     data={chartData}
                     xKey="x"
                     yKeys={["y"]}
-                    domain={{ x: [0, Math.max(0, chartData.length - 1)] }}
-                    domainPadding={{ top: 24, bottom: 12, left: 0, right: 8 }}
-                    padding={{ left: 24, right: 0 }}
+                    domain={{
+                      x: [0, Math.max(0, chartData.length - 1)],
+                      y: [0, yAxisTickValues[yAxisTickValues.length - 1]],
+                    }}
+                    domainPadding={{ top: 10, bottom: 10, left: 16, right: 24 }}
+                    padding={{ left: 20, right: 4 }}
                     chartPressState={pressState}
                     chartPressConfig={{
                       pan: {
@@ -383,34 +373,61 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                       },
                     ]}
                   >
-                    {({ points }) => (
-                      <>
-                        <Line
-                          points={points.y}
-                          color={theme.accent}
-                          strokeWidth={2}
-                          curveType="monotoneX"
-                        />
-                        {isActive && (
-                          <>
-                            <Circle
-                              cx={pressState.x.position}
-                              cy={pressState.y.y.position}
-                              r={8}
-                              color={theme.surface}
-                              opacity={1}
-                            />
-                            <Circle
-                              cx={pressState.x.position}
-                              cy={pressState.y.y.position}
-                              r={5}
-                              color={theme.accent}
-                              opacity={1}
-                            />
-                          </>
-                        )}
-                      </>
-                    )}
+                    {({ points, chartBounds }) => {
+                      const yMax = yAxisTickValues[yAxisTickValues.length - 1];
+                      const chartHeight = chartBounds.bottom - chartBounds.top;
+
+                      // Create 6 evenly spaced grid lines
+                      const gridLineValues = Array.from(
+                        { length: 6 },
+                        (_, i) => (yMax / 5) * i,
+                      );
+
+                      return (
+                        <>
+                          {/* Horizontal grid lines */}
+                          {gridLineValues.map((tick, index) => {
+                            const yPos =
+                              chartBounds.bottom - (tick / yMax) * chartHeight;
+                            return (
+                              <SkiaLine
+                                key={`grid-${index}`}
+                                p1={vec(chartBounds.left, yPos)}
+                                p2={vec(chartBounds.right, yPos)}
+                                color={theme.border}
+                                strokeWidth={1}
+                                opacity={0.7}
+                              />
+                            );
+                          })}
+
+                          <Line
+                            points={points.y}
+                            color={theme.accent}
+                            strokeWidth={2}
+                            curveType="monotoneX"
+                          />
+                          {isActive && (
+                            <>
+                              <Circle
+                                cx={pressState.x.position}
+                                cy={pressState.y.y.position}
+                                r={8}
+                                color={theme.surface}
+                                opacity={1}
+                              />
+                              <Circle
+                                cx={pressState.x.position}
+                                cy={pressState.y.y.position}
+                                r={5}
+                                color={theme.accent}
+                                opacity={1}
+                              />
+                            </>
+                          )}
+                        </>
+                      );
+                    }}
                   </CartesianChart>
                 ) : historyLoading ? (
                   <View style={styles.loadingContainer}>
@@ -535,11 +552,11 @@ const styles = StyleSheet.create({
     }),
   },
   chartWrapper: {
-    height: 250,
+    height: 280,
     paddingTop: spacing.md,
-    paddingLeft: spacing.md,
+    paddingLeft: 0,
     paddingRight: spacing.md,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl,
   },
   chartArea: {
     flex: 1,
