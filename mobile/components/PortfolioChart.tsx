@@ -10,21 +10,64 @@ import { AssetWithMetrics } from "@/src/math/types";
 
 const robotoFont = require("@/assets/fonts/Roboto-Regular.ttf");
 
-const demoHistoryData = [
-  { x: new Date("2024-01-18").getTime(), y: 420 },
-  { x: new Date("2024-01-19").getTime(), y: 480 },
-  { x: new Date("2024-01-20").getTime(), y: 510 },
-  { x: new Date("2024-01-21").getTime(), y: 2100 },
-  { x: new Date("2024-01-22").getTime(), y: 2850 },
-  { x: new Date("2024-01-23").getTime(), y: 3200 },
-  { x: new Date("2024-01-24").getTime(), y: 3841 },
-];
-
-const xLabels = ["01/18", "01/19", "01/20", "01/21", "01/22", "01/23", "01/24"];
-const yLabels = ["$0", "$1280", "$2560", "$3841"];
-
 type ChartType = "performance" | "allocation";
 type TimePeriod = "7D" | "30D" | "90D" | "1Y";
+
+// Configuration for each time period
+// pointInterval: how many days between data points
+// labelInterval: how many data points between X-axis labels
+const PERIOD_CONFIG: Record<TimePeriod, { days: number; pointInterval: number; labelInterval: number }> = {
+  "7D": { days: 7, pointInterval: 1, labelInterval: 1 },     // 7 points, all labeled
+  "30D": { days: 30, pointInterval: 1, labelInterval: 6 },   // 30 points, label every 6
+  "90D": { days: 90, pointInterval: 3, labelInterval: 5 },   // 30 points, label every 5th point (= 15 days)
+  "1Y": { days: 365, pointInterval: 15, labelInterval: 4 },  // ~24 points, label every 4th (~2 months)
+};
+
+// Generate demo data points for a given number of days with specified interval
+function generateDemoData(days: number, pointInterval: number): Array<{ x: number; y: number }> {
+  const endDate = new Date("2024-01-24");
+  const data: Array<{ x: number; y: number }> = [];
+
+  // Generate a somewhat realistic price curve
+  const baseValue = 400;
+  for (let i = days - 1; i >= 0; i -= pointInterval) {
+    const date = new Date(endDate);
+    date.setDate(date.getDate() - i);
+
+    // Add some randomness but trend upward
+    const progress = (days - i) / days;
+    const trend = progress * 3400; // Trend from ~400 to ~3800
+    const noise = Math.sin(i * 0.5) * 200 + Math.random() * 100;
+    const value = Math.max(0, baseValue + trend + noise);
+
+    data.push({ x: date.getTime(), y: Math.round(value) });
+  }
+
+  return data;
+}
+
+// Generate X-axis labels based on data and interval
+function generateXLabels(
+  data: Array<{ x: number }>,
+  labelInterval: number
+): Array<{ label: string; index: number }> {
+  const labels: Array<{ label: string; index: number }> = [];
+
+  for (let i = 0; i < data.length; i += labelInterval) {
+    const date = new Date(data[i].x);
+    const label = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+    labels.push({ label, index: i });
+  }
+
+  return labels;
+}
+
+// Calculate Y-axis labels based on data range
+function generateYLabels(data: Array<{ y: number }>): string[] {
+  const maxY = Math.max(...data.map((d) => d.y));
+  const step = Math.ceil(maxY / 3 / 100) * 100; // Round to nearest 100
+  return ["$0", `$${step}`, `$${step * 2}`, `$${Math.ceil(maxY / 100) * 100}`];
+}
 
 const TIME_PERIODS: TimePeriod[] = ["7D", "30D", "90D", "1Y"];
 
@@ -37,6 +80,23 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
   const [chartType, setChartType] = useState<ChartType>("performance");
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
   const font = useFont(robotoFont, 11);
+
+  // Generate chart data based on selected period
+  const chartData = useMemo(() => {
+    const { days, pointInterval } = PERIOD_CONFIG[selectedPeriod];
+    return generateDemoData(days, pointInterval);
+  }, [selectedPeriod]);
+
+  // Generate X-axis labels (only show every Nth label)
+  const xAxisLabels = useMemo(() => {
+    const { labelInterval } = PERIOD_CONFIG[selectedPeriod];
+    return generateXLabels(chartData, labelInterval);
+  }, [chartData, selectedPeriod]);
+
+  // Generate Y-axis labels based on data range
+  const yAxisLabels = useMemo(() => {
+    return generateYLabels(chartData);
+  }, [chartData]);
 
   const allocationData = useMemo(() => {
     const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
@@ -120,7 +180,7 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
               <View style={styles.chartArea}>
                 {font ? (
                   <CartesianChart
-                    data={demoHistoryData}
+                    data={chartData}
                     xKey="x"
                     yKeys={["y"]}
                     domainPadding={{ top: 10, bottom: 10, left: 5, right: 5 }}
@@ -143,7 +203,7 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
 
                 {/* X-axis labels */}
                 <View style={styles.xAxisLabels}>
-                  {xLabels.map((label, index) => (
+                  {xAxisLabels.map(({ label, index }) => (
                     <Text
                       key={index}
                       style={[styles.axisLabel, { color: theme.textSecondary }]}
@@ -156,7 +216,7 @@ export function PortfolioChart({ assets }: PortfolioChartProps) {
 
               {/* Y-axis labels (right side) */}
               <View style={styles.yAxisLabels}>
-                {yLabels.slice().reverse().map((label, index) => (
+                {yAxisLabels.slice().reverse().map((label, index) => (
                   <Text
                     key={index}
                     style={[styles.axisLabel, { color: theme.textSecondary }]}
