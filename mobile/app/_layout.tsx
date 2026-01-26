@@ -24,6 +24,12 @@ function RootNavigator() {
       <Stack.Screen
         name="index"
         options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="portfolio"
+        options={{
           headerTitleAlign: "center",
           headerTitle: () => (
             <View

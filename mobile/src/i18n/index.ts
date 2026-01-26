@@ -12,6 +12,12 @@ const translations = {
       done: "Done",
       details: "Details",
     },
+    landing: {
+      appName: "Cryptrack",
+      tagline: "Track your crypto investments in one place",
+      getStarted: "Get Started",
+      trackPerformance: "Track performance & manage your portfolio",
+    },
     portfolio: {
       title: "Portfolio",
       totalValue: "Total Value",
