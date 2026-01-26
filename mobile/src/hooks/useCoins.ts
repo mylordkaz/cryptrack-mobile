@@ -56,18 +56,35 @@ const buildCoinsFromMeta = (coins: CoinMetaResponse["coins"]): Coin[] =>
     price_change_percentage_24h: 0,
   }));
 
-export function useCoins() {
+const PRICE_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+export function useCoins(refreshKey: number = 0) {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [priceMap, setPriceMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [autoRefreshTrigger, setAutoRefreshTrigger] = useState(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setAutoRefreshTrigger((prev) => prev + 1);
+    }, PRICE_REFRESH_INTERVAL_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        setLoading(true);
+        if (isInitialLoad) {
+          setLoading(true);
+        }
         setError(null);
 
         // Check if we have cached data and if it's still fresh
@@ -215,7 +232,10 @@ export function useCoins() {
         }
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          if (isInitialLoad) {
+            setLoading(false);
+            setIsInitialLoad(false);
+          }
         }
       }
     })();
@@ -223,7 +243,7 @@ export function useCoins() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey, autoRefreshTrigger]);
 
   return { coins, priceMap, loading, error };
 }

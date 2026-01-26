@@ -18,7 +18,7 @@ export default function PortfolioRecapScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [displayedValue, setDisplayedValue] = useState<number | null>(null);
   const isFirstFocus = useRef(true);
-  const { priceMap, loading: pricesLoading } = useCoins();
+  const { priceMap, loading: pricesLoading } = useCoins(refreshKey);
   const { portfolio, loading, error } = usePortfolioMetrics(priceMap, refreshKey);
   const router = useRouter();
 

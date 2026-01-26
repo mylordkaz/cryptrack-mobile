@@ -37,7 +37,7 @@ export default function AssetDetailScreen() {
   const [coinMetadata, setCoinMetadata] = useState<CoinMetadata | null>(null);
   const isFirstFocus = useRef(true);
 
-  const { priceMap, loading: pricesLoading } = useCoins();
+  const { priceMap, loading: pricesLoading } = useCoins(refreshKey);
   const { data, loading, error } = useAssetDetail(
     symbol ?? "",
     priceMap,
