@@ -335,7 +335,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                       x: [0, Math.max(0, chartData.length - 1)],
                       y: [0, yAxisTickValues[yAxisTickValues.length - 1]],
                     }}
-                    domainPadding={{ top: 10, bottom: 10, left: 16, right: 24 }}
+                    domainPadding={{ top: 10, bottom: 10, left: 0, right: 0 }}
                     padding={{ left: 20, right: 4 }}
                     chartPressState={pressState}
                     chartPressConfig={{
