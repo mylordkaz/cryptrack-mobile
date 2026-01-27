@@ -115,6 +115,35 @@ func main() {
 		}
 	}()
 
+	go func() {
+		if _, err := fxService.GetRates(); err != nil {
+			log.Printf("Failed to warm FX rates cache: %v", err)
+		}
+
+		loc, err := time.LoadLocation("Europe/Paris")
+		if err != nil {
+			log.Printf("Failed to load Europe/Paris timezone, using UTC: %v", err)
+			loc = time.UTC
+		}
+
+		now := time.Now().In(loc)
+		next := time.Date(now.Year(), now.Month(), now.Day(), 17, 0, 0, 0, loc)
+		if !next.After(now) {
+			next = next.Add(24 * time.Hour)
+		}
+
+		time.Sleep(time.Until(next))
+
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			if _, err := fxService.GetRates(); err != nil {
+				log.Printf("Failed to refresh FX rates cache: %v", err)
+			}
+		}
+	}()
+
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Text, View, Pressable } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Settings, ChevronLeft } from "lucide-react-native";
+import { initFxRates } from "@/src/services/fx";
 
 function RootNavigator() {
   const { theme } = useTheme();
@@ -204,6 +205,10 @@ export default function RootLayout() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    initFxRates().catch(() => {});
   }, []);
 
   if (dbError) {
