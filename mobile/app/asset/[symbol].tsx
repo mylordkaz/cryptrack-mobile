@@ -7,16 +7,17 @@ import {
   StyleSheet,
 } from "react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocalSearchParams, useNavigation } from "expo-router";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme, spacing, radius } from "@/src/theme";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
 import { useAssetDetail } from "@/src/hooks/useAssetDetail";
 import { useCoins } from "@/src/hooks/useCoins";
 import {
   formatFiat,
   formatAmount,
+  formatDateOnly,
+  formatTimeOnly,
 } from "@/src/utils/format";
 import { deleteTransaction } from "@/src/db/transactions";
 import { Transaction } from "@/src/types/transaction";
@@ -30,6 +31,7 @@ import { Body, Caption, Headline } from "@/components/ui";
 export default function AssetDetailScreen() {
   const { symbol } = useLocalSearchParams<{ symbol: string }>();
   const { theme, isDark } = useTheme();
+  const { t } = useLocale();
   const router = useRouter();
   const navigation = useNavigation();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -76,7 +78,7 @@ export default function AssetDetailScreen() {
               hitSlop={8}
               style={{ position: "absolute", left: 0 }}
               accessibilityRole="button"
-              accessibilityLabel="Go back"
+              accessibilityLabel={t("common.back")}
             >
               <ChevronLeft size={28} color={theme.text} />
             </Pressable>
@@ -126,30 +128,24 @@ export default function AssetDetailScreen() {
   const onDelete = useCallback(() => {
     if (!selectedTx) return;
 
-    Alert.alert(
-      t("transaction.deleteTitle"),
-      t("transaction.deleteConfirm"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("transaction.delete"),
-          style: "destructive",
-          onPress: async () => {
-            await deleteTransaction(selectedTx.id);
-            setSelectedTx(null);
-            setRefreshKey((prev) => prev + 1);
-          },
+    Alert.alert(t("transaction.deleteTitle"), t("transaction.deleteConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("transaction.delete"),
+        style: "destructive",
+        onPress: async () => {
+          await deleteTransaction(selectedTx.id);
+          setSelectedTx(null);
+          setRefreshKey((prev) => prev + 1);
         },
-      ],
-    );
+      },
+    ]);
   }, [selectedTx]);
 
   if (!symbol) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.bg }]}>
-        <Body>
-          {t("common.error")}: missing symbol
-        </Body>
+        <Body>{t("common.error")}: missing symbol</Body>
       </View>
     );
   }
@@ -179,9 +175,9 @@ export default function AssetDetailScreen() {
 
   const unrealizedPnLPercent =
     hasPrice && data.metrics.avgBuyPrice && data.metrics.avgBuyPrice > 0
-      ? ((data.currentPrice ?? 0) - data.metrics.avgBuyPrice) /
-          data.metrics.avgBuyPrice *
-          100
+      ? (((data.currentPrice ?? 0) - data.metrics.avgBuyPrice) /
+          data.metrics.avgBuyPrice) *
+        100
       : null;
 
   return (
@@ -197,7 +193,12 @@ export default function AssetDetailScreen() {
             cachePolicy="disk"
           />
         ) : (
-          <View style={[styles.coinImageFallback, { backgroundColor: theme.accent + "20" }]}>
+          <View
+            style={[
+              styles.coinImageFallback,
+              { backgroundColor: theme.accent + "20" },
+            ]}
+          >
             <Text style={[styles.coinImageLetter, { color: theme.accent }]}>
               {symbol?.charAt(0)}
             </Text>
@@ -210,7 +211,12 @@ export default function AssetDetailScreen() {
         </Caption>
 
         {/* Amount / Value Card */}
-        <View style={[styles.amountCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View
+          style={[
+            styles.amountCard,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
           <View style={styles.amountCardColumn}>
             <Headline color="accent" style={styles.amountCardValue}>
               {formatAmount(data.metrics.amountHeld, 6)}
@@ -222,9 +228,13 @@ export default function AssetDetailScreen() {
 
           <View style={styles.amountCardColumn}>
             <Headline style={styles.amountCardValue}>
-              {hasPrice && currentValue !== null ? formatFiat(currentValue) : "-"}
+              {hasPrice && currentValue !== null
+                ? formatFiat(currentValue)
+                : "-"}
             </Headline>
-            <Caption style={styles.amountCardLabel}>{t("portfolio.currentValue")}</Caption>
+            <Caption style={styles.amountCardLabel}>
+              {t("portfolio.currentValue")}
+            </Caption>
           </View>
         </View>
 
@@ -233,22 +243,29 @@ export default function AssetDetailScreen() {
           <View style={styles.metricRow}>
             <Caption>{t("assetDetail.avgBuyPrice")}</Caption>
             <Body>
-              {data.metrics.avgBuyPrice !== null ? formatFiat(data.metrics.avgBuyPrice) : "-"}
+              {data.metrics.avgBuyPrice !== null
+                ? formatFiat(data.metrics.avgBuyPrice)
+                : "-"}
             </Body>
           </View>
 
           <View style={styles.metricRow}>
             <Caption>{t("assetDetail.unrealizedPnL")}</Caption>
             <Body
-              color={hasPrice
-                ? data.metrics.unrealizedPnL >= 0
-                  ? "gain"
-                  : "loss"
-                : "primary"}
+              color={
+                hasPrice
+                  ? data.metrics.unrealizedPnL >= 0
+                    ? "gain"
+                    : "loss"
+                  : "primary"
+              }
               style={
                 isDark && hasPrice
                   ? {
-                      textShadowColor: data.metrics.unrealizedPnL >= 0 ? theme.gain : theme.loss,
+                      textShadowColor:
+                        data.metrics.unrealizedPnL >= 0
+                          ? theme.gain
+                          : theme.loss,
                       textShadowOffset: { width: 0, height: 0 },
                       textShadowRadius: 8,
                     }
@@ -256,7 +273,9 @@ export default function AssetDetailScreen() {
               }
             >
               {hasPrice ? formatFiat(data.metrics.unrealizedPnL) : "-"}
-              {hasPrice && unrealizedPnLPercent !== null && ` (${unrealizedPnLPercent.toFixed(2)}%)`}
+              {hasPrice &&
+                unrealizedPnLPercent !== null &&
+                ` (${unrealizedPnLPercent.toFixed(2)}%)`}
             </Body>
           </View>
 
@@ -303,17 +322,10 @@ export default function AssetDetailScreen() {
             <View style={styles.transactionLeft}>
               <View style={styles.transactionDateRow}>
                 <Caption style={styles.transactionDate}>
-                  {new Intl.DateTimeFormat("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "2-digit",
-                  }).format(new Date(tx.timestamp))}
+                  {formatDateOnly(tx.timestamp)}
                 </Caption>
                 <Caption style={styles.transactionTime}>
-                  {new Intl.DateTimeFormat("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).format(new Date(tx.timestamp))}
+                  {formatTimeOnly(tx.timestamp)}
                 </Caption>
               </View>
               <Body
@@ -321,13 +333,16 @@ export default function AssetDetailScreen() {
                 style={[
                   styles.transactionType,
                   isDark && {
-                    textShadowColor: tx.type === "BUY" ? theme.gain : theme.loss,
+                    textShadowColor:
+                      tx.type === "BUY" ? theme.gain : theme.loss,
                     textShadowOffset: { width: 0, height: 0 },
                     textShadowRadius: 8,
                   },
                 ]}
               >
-                {tx.type}
+                {tx.type === "BUY"
+                  ? t("transaction.buy")
+                  : t("transaction.sell")}
               </Body>
             </View>
 

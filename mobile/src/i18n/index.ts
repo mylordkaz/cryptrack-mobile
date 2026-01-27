@@ -1,132 +1,75 @@
 import * as Localization from "expo-localization";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { I18n } from "i18n-js";
+import { en } from "./locales/en";
+import { fr } from "./locales/fr";
+import { ja } from "./locales/ja";
 
 const translations = {
-  en: {
-    common: {
-      loading: "Loading...",
-      error: "Error",
-      noData: "No data",
-      addTransaction: "Add transaction",
-      cancel: "Cancel",
-      done: "Done",
-      details: "Details",
-    },
-    landing: {
-      appName: "Cryptrack",
-      tagline: "Track your crypto investments in one place",
-      getStarted: "Get Started",
-      trackPerformance: "Keep privacy & performance",
-    },
-    portfolio: {
-      title: "Portfolio",
-      totalValue: "Total Value",
-      totalInvested: "Total Invested",
-      totalPnL: "Total PnL",
-      emptyState: "No transactions yet",
-      emptyStateSubtitle:
-        "Start tracking your crypto portfolio by adding your first transaction",
-      addFirstTransaction: "Add first transaction",
-      assets: "Assets",
-      amountHeld: "Amount",
-      currentValue: "Value",
-      avgBuyPrice: "Avg Buy",
-      unrealizedPnL: "Unrealized PnL",
-      performance: "Performance",
-      allocation: "Allocation",
-      total: "Total",
-    },
-    assetDetail: {
-      title: "Asset Detail",
-      currentPrice: "Current Price",
-      currentValue: "Current Value",
-      avgBuyPrice: "Avg Buy Price",
-      unrealizedPnL: "Unrealized PnL",
-      totalInvested: "Total Invested",
-      realizedPnL: "Realized PnL",
-      transactions: "Transactions",
-      txCount: "Transactions",
-      firstTx: "First Transaction",
-      type: "Type",
-      amount: "Amount",
-      fiatValue: "Fiat Value",
-      pricePerUnit: "Price / Unit",
-      timestamp: "Timestamp",
-    },
-    transaction: {
-      addTitle: "Add Transaction",
-      editTitle: "Edit Transaction",
-      type: "Type",
-      buy: "Buy",
-      sell: "Sell",
-      asset: "Asset",
-      assetSymbol: "Asset Symbol",
-      selectAsset: "Select Crypto",
-      searchAsset: "Search cryptocurrency...",
-      addOptionalFields: "Add fees & notes",
-      optionalFieldsTitle: "Fees & Notes (Optional)",
-      amount: "Amount",
-      date: "Date",
-      timestamp: "Date",
-      pricePerUnit: "Price / Unit",
-      fiatCurrency: "Fiat Currency",
-      totalFiat: "Total Fiat",
-      feeAmount: "Fee Amount (optional)",
-      fee: "Fee",
-      notes: "Notes",
-      notesPlaceholder: "Add notes (optional)",
-      submit: "Save Transaction",
-      saveChanges: "Save Changes",
-      detailsTitle: "Transaction Details",
-      currentValue: "Current Value",
-      priceAtTime: "Price at Time",
-      costBasis: "Cost Basis",
-      edit: "Edit",
-      delete: "Delete",
-      deleteTitle: "Delete Transaction",
-      deleteConfirm: "This will remove the transaction permanently.",
-      invalidAmount: "Amount must be > 0",
-      invalidPrice: "Price must be > 0",
-      invalidSymbol: "Asset symbol is required",
-    },
-    settings: {
-      title: "Settings",
-      appearance: "Appearance",
-      theme: "Theme",
-      light: "Light",
-      dark: "Dark",
-      system: "System",
-      preferences: "Preferences",
-      language: "Language",
-      languageValue: "English",
-      selectLanguage: "Select Language",
-      english: "English",
-      japanese: "Japanese",
-      french: "French",
-      currency: "Currency",
-      currencyValue: "USD",
-      selectCurrency: "Select Currency",
-      usd: "US Dollar (USD)",
-      eur: "Euro (EUR)",
-      jpy: "Japanese Yen (JPY)",
-      security: "Security",
-      faceId: "Face ID / Touch ID",
-      faceIdDescription: "Unlock with biometrics",
-      about: "About",
-      version: "Version",
-      versionNumber: "1.0.0",
-      feedback: "Feedback",
-      termsOfUse: "Terms of Use",
-      privacyPolicy: "Privacy Policy",
-    },
-  },
+  en,
+  fr,
+  ja,
 };
+
+export const SUPPORTED_LOCALES = ["en", "fr", "ja"] as const;
+export type Locale = (typeof SUPPORTED_LOCALES)[number];
+const DEFAULT_LOCALE: Locale = "en";
+const LANGUAGE_STORAGE_KEY = "app-language";
 
 const i18n = new I18n(translations);
 i18n.enableFallback = true;
 i18n.defaultLocale = "en";
-i18n.locale = Localization.getLocales()[0]?.languageTag ?? "en";
+i18n.locale = DEFAULT_LOCALE;
 
 export function t(key: string, options?: Record<string, unknown>) {
   return i18n.t(key, options);
+}
+
+export function normalizeLocale(locale?: string | null): Locale {
+  if (!locale) return DEFAULT_LOCALE;
+  const normalized = locale.toLowerCase().replace("_", "-");
+  const base = normalized.split("-")[0];
+  if (SUPPORTED_LOCALES.includes(base as Locale)) {
+    return base as Locale;
+  }
+  if (SUPPORTED_LOCALES.includes(normalized as Locale)) {
+    return normalized as Locale;
+  }
+  return DEFAULT_LOCALE;
+}
+
+export function getDeviceLocale(): Locale {
+  const locale =
+    Localization.getLocales()[0]?.languageCode ??
+    Localization.getLocales()[0]?.languageTag ??
+    null;
+  return normalizeLocale(locale);
+}
+
+export async function initLocale(): Promise<Locale> {
+  try {
+    const saved = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+    const locale = saved ? normalizeLocale(saved) : getDeviceLocale();
+    i18n.locale = locale;
+    return locale;
+  } catch {
+    const locale = getDeviceLocale();
+    i18n.locale = locale;
+    return locale;
+  }
+}
+
+export async function setLocale(
+  locale: string,
+  options?: { persist?: boolean },
+) {
+  const next = normalizeLocale(locale);
+  i18n.locale = next;
+  if (options?.persist !== false) {
+    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, next);
+  }
+}
+
+export function getLocale() {
+  return normalizeLocale(i18n.locale);
 }

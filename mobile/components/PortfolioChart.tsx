@@ -23,7 +23,8 @@ import Animated, {
   useSharedValue,
   runOnJS,
 } from "react-native-reanimated";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
+import { formatShortDate } from "@/src/utils/format";
 import { AssetWithMetrics } from "@/src/math/types";
 import { usePortfolioHistory } from "@/src/hooks/usePortfolioHistory";
 import interRegular from "@/assets/fonts/Inter-Regular.ttf";
@@ -52,8 +53,7 @@ function generateXLabels(
   const labels: Array<{ label: string; index: number }> = [];
 
   for (let i = 0; i < data.length; i += labelInterval) {
-    const date = new Date(data[i].date);
-    const label = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+    const label = formatShortDate(data[i].date);
     labels.push({ label, index: i });
   }
 
@@ -109,6 +109,7 @@ interface PortfolioChartProps {
 
 export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
   const { theme } = useTheme();
+  const { t, locale } = useLocale();
   const [chartType, setChartType] = useState<ChartType>("performance");
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
   const { data: historyData, loading: historyLoading } = usePortfolioHistory(
@@ -155,7 +156,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
   const xAxisLabels = useMemo(() => {
     const { labelInterval } = PERIOD_CONFIG[selectedPeriod];
     return generateXLabels(chartData, labelInterval);
-  }, [chartData, selectedPeriod]);
+  }, [chartData, selectedPeriod, locale]);
 
   // Generate Y-axis tick values based on data range
   const yAxisTickValues = useMemo(() => {
@@ -191,13 +192,9 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
     (index: number) => {
       const item = chartData[index];
       if (!item) return;
-      const date = new Date(item.date);
-      const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-        date.getDate(),
-      ).padStart(2, "0")}`;
-      setTooltipLabel(dateStr);
+      setTooltipLabel(formatShortDate(item.date));
     },
-    [chartData],
+    [chartData, locale],
   );
 
   const handleValueChange = useCallback(
@@ -350,8 +347,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                       formatXLabel: (value) => {
                         const item = chartData[Math.round(value)];
                         if (!item) return "";
-                        const date = new Date(item.date);
-                        return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+                        return formatShortDate(item.date);
                       },
                       axisSide: "bottom",
                       yAxisSide: "right",
@@ -364,8 +360,19 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                         tickValues: yAxisTickValues,
                         labelColor: theme.textSecondary,
                         font: axisFont ?? undefined,
-                        formatYLabel: (value) =>
-                          `$${Math.round(value).toLocaleString()}`,
+                        formatYLabel: (value) => {
+                          if (
+                            typeof Intl !== "undefined" &&
+                            typeof Intl.NumberFormat === "function"
+                          ) {
+                            return new Intl.NumberFormat(locale, {
+                              style: "currency",
+                              currency: "USD",
+                              maximumFractionDigits: 0,
+                            }).format(value);
+                          }
+                          return `$${Math.round(value).toLocaleString()}`;
+                        },
                         axisSide: "right",
                         labelPosition: "outset",
                         lineColor: "transparent",

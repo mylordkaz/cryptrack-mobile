@@ -3,7 +3,7 @@ import { useCallback, useEffect } from "react";
 import { Transaction } from "@/src/types/transaction";
 import { ThemeTokens, spacing, radius, useTheme } from "@/src/theme";
 import { formatFiat, formatAmount, formatDateTime } from "@/src/utils/format";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -42,6 +42,7 @@ export function TransactionDetailsBottomSheet({
   onDelete,
 }: TransactionDetailsBottomSheetProps) {
   const { isDark } = useTheme();
+  const { t } = useLocale();
   const translateY = useSharedValue(0);
   const isDismissing = useSharedValue(false);
   const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -111,7 +112,9 @@ export function TransactionDetailsBottomSheet({
               animatedStyle,
             ]}
           >
-            <View style={[styles.dragHandle, { backgroundColor: theme.muted }]} />
+            <View
+              style={[styles.dragHandle, { backgroundColor: theme.muted }]}
+            />
 
             {/* Header */}
             <Title style={styles.header}>{t("common.details")}</Title>
@@ -124,20 +127,28 @@ export function TransactionDetailsBottomSheet({
                 style={[
                   styles.transactionType,
                   isDark && {
-                    textShadowColor: transaction.type === "BUY" ? theme.gain : theme.loss,
+                    textShadowColor:
+                      transaction.type === "BUY" ? theme.gain : theme.loss,
                     textShadowOffset: { width: 0, height: 0 },
                     textShadowRadius: 8,
                   },
                 ]}
               >
-                {transaction.type}
+                {transaction.type === "BUY"
+                  ? t("transaction.buy")
+                  : t("transaction.sell")}
               </Body>
             </View>
 
             {/* Transaction Details */}
             <View style={styles.content}>
               {/* Main Info Card */}
-              <View style={[styles.mainInfoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View
+                style={[
+                  styles.mainInfoCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
                 {/* Left: Amount */}
                 <View style={styles.amountSection}>
                   <Headline style={styles.amountValue}>

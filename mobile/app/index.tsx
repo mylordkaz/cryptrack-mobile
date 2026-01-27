@@ -2,13 +2,14 @@ import { View, StyleSheet } from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { useRouter } from "expo-router";
 import { Button, Headline, Body } from "@/components/ui";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
 import { Image } from "expo-image";
 import { TrendingUp } from "lucide-react-native";
 
 export default function LandingScreen() {
   const { theme, isDark } = useTheme();
   const router = useRouter();
+  const { t } = useLocale();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -40,7 +41,10 @@ export default function LandingScreen() {
           <View
             style={[
               styles.featureBox,
-              { backgroundColor: theme.accent + "15", borderColor: theme.accent + "30" },
+              {
+                backgroundColor: theme.accent + "15",
+                borderColor: theme.accent + "30",
+              },
             ]}
           >
             <TrendingUp size={32} color={theme.accent} />

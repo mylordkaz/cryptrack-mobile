@@ -1,15 +1,18 @@
 import { initDB } from "@/src/db/db";
+import { initLocale, t } from "@/src/i18n";
+import type { Locale } from "@/src/i18n";
+import { LocaleProvider, useLocale } from "@/src/i18n/LocaleProvider";
 import { ThemeProvider, useTheme } from "@/src/theme";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text, View, Pressable } from "react-native";
-import { t } from "@/src/i18n";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Settings, ChevronLeft } from "lucide-react-native";
 
 function RootNavigator() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { t } = useLocale();
 
   return (
     <Stack
@@ -77,7 +80,7 @@ function RootNavigator() {
                 hitSlop={8}
                 style={{ position: "absolute", left: 0 }}
                 accessibilityRole="button"
-                accessibilityLabel="Go back"
+                accessibilityLabel={t("common.back")}
               >
                 <ChevronLeft size={28} color={theme.text} />
               </Pressable>
@@ -112,7 +115,7 @@ function RootNavigator() {
                   hitSlop={8}
                   style={{ position: "absolute", left: 0 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Go back"
+                  accessibilityLabel={t("common.back")}
                 >
                   <ChevronLeft size={28} color={theme.text} />
                 </Pressable>
@@ -145,7 +148,7 @@ function RootNavigator() {
                 hitSlop={8}
                 style={{ position: "absolute", left: 0 }}
                 accessibilityRole="button"
-                accessibilityLabel="Go back"
+                accessibilityLabel={t("common.back")}
               >
                 <ChevronLeft size={28} color={theme.text} />
               </Pressable>
@@ -165,16 +168,42 @@ function RootNavigator() {
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState<Error | null>(null);
+  const [localeReady, setLocaleReady] = useState(false);
+  const [initialLocale, setInitialLocale] = useState<Locale>("en");
 
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
       try {
         await initDB();
-        setDbReady(true);
+        if (!cancelled) {
+          setDbReady(true);
+        }
       } catch (err) {
-        setDbError(err as Error);
+        if (!cancelled) {
+          setDbError(err as Error);
+        }
       }
     })();
+
+    (async () => {
+      try {
+        const locale = await initLocale();
+        if (!cancelled) {
+          setInitialLocale(locale);
+          setLocaleReady(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setLocaleReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (dbError) {
@@ -185,10 +214,10 @@ export default function RootLayout() {
     );
   }
 
-  if (!dbReady) {
+  if (!dbReady || !localeReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
+        <Text>{localeReady ? t("common.loading") : "Loading..."}</Text>
       </View>
     );
   }
@@ -196,7 +225,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <RootNavigator />
+        <LocaleProvider initialLocale={initialLocale}>
+          <RootNavigator />
+        </LocaleProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

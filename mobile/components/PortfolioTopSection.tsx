@@ -1,5 +1,5 @@
 import { View, StyleSheet, Pressable } from "react-native";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
 import { ThemeTokens, spacing, radius, useTheme } from "@/src/theme";
 import { formatFiat } from "@/src/utils/format";
 import { HeroText, Caption, Body, Label } from "./ui";
@@ -21,11 +21,14 @@ export function PortfolioTopSection({
   totalPnLPercentage,
 }: PortfolioTopSectionProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useLocale();
   const router = useRouter();
   const isPositive = totalPnL >= 0;
   const pnlSign = isPositive ? "+" : "";
   const pnlPercentText =
-    totalPnLPercentage !== null ? ` (${pnlSign}${totalPnLPercentage.toFixed(2)}%)` : "";
+    totalPnLPercentage !== null
+      ? ` (${pnlSign}${totalPnLPercentage.toFixed(2)}%)`
+      : "";
 
   return (
     <View style={styles.container}>
@@ -67,7 +70,9 @@ export function PortfolioTopSection({
               },
             ]}
           >
-            {pnlSign}{formatFiat(totalPnL)}{pnlPercentText}
+            {pnlSign}
+            {formatFiat(totalPnL)}
+            {pnlPercentText}
           </Body>
         </View>
       </View>

@@ -3,7 +3,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { usePortfolioMetrics } from "../src/hooks/usePortfolioMetrics";
 import { useCoins } from "@/src/hooks/useCoins";
 import { useTheme, spacing } from "@/src/theme";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
 import { PortfolioTopSection } from "@/components/PortfolioTopSection";
 import { PortfolioChart } from "@/components/PortfolioChart";
 import { AssetList } from "@/components/AssetList";
@@ -15,11 +15,15 @@ import { useCallback, useRef, useState } from "react";
 
 export default function PortfolioRecapScreen() {
   const { theme } = useTheme();
+  const { t } = useLocale();
   const [refreshKey, setRefreshKey] = useState(0);
   const [displayedValue, setDisplayedValue] = useState<number | null>(null);
   const isFirstFocus = useRef(true);
   const { priceMap, loading: pricesLoading } = useCoins(refreshKey);
-  const { portfolio, loading, error } = usePortfolioMetrics(priceMap, refreshKey);
+  const { portfolio, loading, error } = usePortfolioMetrics(
+    priceMap,
+    refreshKey,
+  );
   const router = useRouter();
 
   useFocusEffect(

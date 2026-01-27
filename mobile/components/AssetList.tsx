@@ -1,6 +1,6 @@
 import { View, StyleSheet } from "react-native";
 import { AssetWithMetrics } from "@/src/math/types";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
 import { spacing } from "@/src/theme";
 import { AssetRow } from "./AssetRow";
 import { Headline } from "./ui";
@@ -12,9 +12,10 @@ interface AssetListProps {
 }
 
 export function AssetList({ assets }: AssetListProps) {
+  const { t } = useLocale();
   const symbols = useMemo(
     () => [...new Set(assets.map((a) => a.symbol))].sort(),
-    [assets]
+    [assets],
   );
   const { metadata } = useCoinMetadata(symbols);
 

@@ -13,7 +13,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { useTheme, spacing, radius } from "@/src/theme";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
 import { Plus, Minus } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -28,6 +28,7 @@ type TxType = "BUY" | "SELL";
 
 export default function AddTransactionScreen() {
   const { theme, isDark } = useTheme();
+  const { t } = useLocale();
   const { symbol, id } = useLocalSearchParams<{
     symbol?: string;
     id?: string;

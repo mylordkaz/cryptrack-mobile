@@ -9,8 +9,10 @@ import {
   Dimensions,
 } from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
-import { t } from "@/src/i18n";
+import { useLocale } from "@/src/i18n/LocaleProvider";
+import type { Locale } from "@/src/i18n";
 import { Body, Caption, Headline } from "@/components/ui";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ChevronRight,
   Moon,
@@ -38,15 +40,18 @@ import { scheduleOnRN } from "react-native-worklets";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-type Language = "en" | "ja" | "fr";
+type Language = Locale;
 type Currency = "USD" | "EUR" | "JPY";
+
+const CURRENCY_STORAGE_KEY = "app-currency";
+const APP_VERSION = "1.0.0";
 
 export default function SettingsScreen() {
   const { theme, mode, setMode, isDark } = useTheme();
+  const { t, locale, setLocale } = useLocale();
   const [faceIdEnabled, setFaceIdEnabled] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>("en");
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>("USD");
 
   const translateYLanguage = useSharedValue(0);
@@ -81,6 +86,31 @@ export default function SettingsScreen() {
     );
   };
 
+  // Load saved currency on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const savedCurrency = await AsyncStorage.getItem(CURRENCY_STORAGE_KEY);
+
+        if (
+          mounted &&
+          savedCurrency &&
+          (savedCurrency === "USD" ||
+            savedCurrency === "EUR" ||
+            savedCurrency === "JPY")
+        ) {
+          setSelectedCurrency(savedCurrency);
+        }
+      } catch (error) {
+        // Ignore errors
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (showLanguageModal) {
       translateYLanguage.value = 0;
@@ -106,6 +136,23 @@ export default function SettingsScreen() {
     translateYCurrency.value = SCREEN_HEIGHT;
     setShowCurrencyModal(false);
   }, [SCREEN_HEIGHT, isDismissingCurrency, translateYCurrency]);
+
+  const handleLanguageChange = useCallback(
+    async (lang: Language) => {
+      await setLocale(lang);
+      closeLanguageModal();
+    },
+    [closeLanguageModal],
+  );
+
+  const handleCurrencyChange = useCallback(
+    async (currency: Currency) => {
+      setSelectedCurrency(currency);
+      await AsyncStorage.setItem(CURRENCY_STORAGE_KEY, currency);
+      closeCurrencyModal();
+    },
+    [closeCurrencyModal],
+  );
 
   const panGestureLanguage = Gesture.Pan()
     .onUpdate((event) => {
@@ -309,7 +356,7 @@ export default function SettingsScreen() {
                   {t("settings.language")}
                 </Body>
                 <Caption style={{ color: theme.textSecondary }}>
-                  {getLanguageLabel(selectedLanguage)}
+                  {getLanguageLabel(locale)}
                 </Caption>
               </View>
               <ChevronRight size={20} color={theme.textSecondary} />
@@ -389,7 +436,7 @@ export default function SettingsScreen() {
                   {t("settings.version")}
                 </Body>
                 <Caption style={{ color: theme.textSecondary }}>
-                  {t("settings.versionNumber")}
+                  {APP_VERSION}
                 </Caption>
               </View>
             </View>
@@ -483,15 +530,12 @@ export default function SettingsScreen() {
                         borderBottomWidth: 1,
                       },
                     ]}
-                    onPress={() => {
-                      setSelectedLanguage(language.code);
-                      closeLanguageModal();
-                    }}
+                    onPress={() => handleLanguageChange(language.code)}
                   >
                     <Body style={{ color: theme.text, flex: 1 }}>
                       {language.label}
                     </Body>
-                    {selectedLanguage === language.code && (
+                    {locale === language.code && (
                       <Check size={20} color={theme.accent} />
                     )}
                   </TouchableOpacity>
@@ -543,10 +587,7 @@ export default function SettingsScreen() {
                         borderBottomWidth: 1,
                       },
                     ]}
-                    onPress={() => {
-                      setSelectedCurrency(currency.code);
-                      closeCurrencyModal();
-                    }}
+                    onPress={() => handleCurrencyChange(currency.code)}
                   >
                     <Body style={{ color: theme.text, flex: 1 }}>
                       {currency.label}
