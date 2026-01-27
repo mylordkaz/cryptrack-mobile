@@ -16,7 +16,7 @@ const translations = {
       appName: "Cryptrack",
       tagline: "Track your crypto investments in one place",
       getStarted: "Get Started",
-      trackPerformance: "Track performance & manage your portfolio",
+      trackPerformance: "Keep privacy & performance",
     },
     portfolio: {
       title: "Portfolio",
@@ -24,7 +24,8 @@ const translations = {
       totalInvested: "Total Invested",
       totalPnL: "Total PnL",
       emptyState: "No transactions yet",
-      emptyStateSubtitle: "Start tracking your crypto portfolio by adding your first transaction",
+      emptyStateSubtitle:
+        "Start tracking your crypto portfolio by adding your first transaction",
       addFirstTransaction: "Add first transaction",
       assets: "Assets",
       amountHeld: "Amount",
