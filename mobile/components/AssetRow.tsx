@@ -2,7 +2,8 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { AssetWithMetrics } from "@/src/math/types";
 import { useTheme, spacing, radius } from "@/src/theme";
-import { formatFiat, formatAmount } from "@/src/utils/format";
+import { formatAmount } from "@/src/utils/format";
+import { useCurrency } from "@/src/currency";
 import { useRouter } from "expo-router";
 import { Headline, Caption, BodyMedium } from "./ui";
 
@@ -14,6 +15,7 @@ interface AssetRowProps {
 
 export function AssetRow({ asset, imageUrl, isLast = false }: AssetRowProps) {
   const { theme, isDark } = useTheme();
+  const { formatFiatUsd } = useCurrency();
   const router = useRouter();
 
   const unrealizedPnLPercent =
@@ -61,11 +63,11 @@ export function AssetRow({ asset, imageUrl, isLast = false }: AssetRowProps) {
           <View style={styles.infoContainer}>
             <View style={styles.topRow}>
               <BodyMedium>{asset.symbol}</BodyMedium>
-              <BodyMedium>{formatFiat(asset.currentValue)}</BodyMedium>
+              <BodyMedium>{formatFiatUsd(asset.currentValue)}</BodyMedium>
             </View>
 
             <View style={styles.bottomRow}>
-              <Caption>{formatFiat(asset.currentPrice)}</Caption>
+              <Caption>{formatFiatUsd(asset.currentPrice)}</Caption>
               <View style={styles.rightInfo}>
                 <Caption>{formatAmount(asset.metrics.amountHeld, 4)}</Caption>
                 <View

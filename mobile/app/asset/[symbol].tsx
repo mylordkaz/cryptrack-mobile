@@ -14,11 +14,11 @@ import { useLocale } from "@/src/i18n/LocaleProvider";
 import { useAssetDetail } from "@/src/hooks/useAssetDetail";
 import { useCoins } from "@/src/hooks/useCoins";
 import {
-  formatFiat,
   formatAmount,
   formatDateOnly,
   formatTimeOnly,
 } from "@/src/utils/format";
+import { useCurrency } from "@/src/currency";
 import { deleteTransaction } from "@/src/db/transactions";
 import { Transaction } from "@/src/types/transaction";
 import { TransactionDetailsBottomSheet } from "@/components/TransactionDetailsBottomSheet";
@@ -32,6 +32,7 @@ export default function AssetDetailScreen() {
   const { symbol } = useLocalSearchParams<{ symbol: string }>();
   const { theme, isDark } = useTheme();
   const { t } = useLocale();
+  const { formatFiatUsd } = useCurrency();
   const router = useRouter();
   const navigation = useNavigation();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -207,7 +208,7 @@ export default function AssetDetailScreen() {
 
         {/* Current Price */}
         <Caption style={styles.priceText}>
-          {hasPrice ? formatFiat(data.currentPrice ?? 0) : "-"}
+          {hasPrice ? formatFiatUsd(data.currentPrice ?? 0) : "-"}
         </Caption>
 
         {/* Amount / Value Card */}
@@ -227,11 +228,18 @@ export default function AssetDetailScreen() {
           <View style={[styles.separator, { backgroundColor: theme.border }]} />
 
           <View style={styles.amountCardColumn}>
-            <Headline style={styles.amountCardValue}>
+            <Text
+              style={[
+                styles.amountCardValueText,
+                { color: theme.text },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {hasPrice && currentValue !== null
-                ? formatFiat(currentValue)
+                ? formatFiatUsd(currentValue)
                 : "-"}
-            </Headline>
+            </Text>
             <Caption style={styles.amountCardLabel}>
               {t("portfolio.currentValue")}
             </Caption>
@@ -244,7 +252,7 @@ export default function AssetDetailScreen() {
             <Caption>{t("assetDetail.avgBuyPrice")}</Caption>
             <Body>
               {data.metrics.avgBuyPrice !== null
-                ? formatFiat(data.metrics.avgBuyPrice)
+                ? formatFiatUsd(data.metrics.avgBuyPrice)
                 : "-"}
             </Body>
           </View>
@@ -272,7 +280,7 @@ export default function AssetDetailScreen() {
                   : undefined
               }
             >
-              {hasPrice ? formatFiat(data.metrics.unrealizedPnL) : "-"}
+              {hasPrice ? formatFiatUsd(data.metrics.unrealizedPnL) : "-"}
               {hasPrice &&
                 unrealizedPnLPercent !== null &&
                 ` (${unrealizedPnLPercent.toFixed(2)}%)`}
@@ -281,7 +289,7 @@ export default function AssetDetailScreen() {
 
           <View style={styles.metricRow}>
             <Caption>{t("assetDetail.totalInvested")}</Caption>
-            <Body>{formatFiat(data.metrics.investedFiat)}</Body>
+            <Body>{formatFiatUsd(data.metrics.investedFiat)}</Body>
           </View>
         </View>
       </View>
@@ -351,7 +359,7 @@ export default function AssetDetailScreen() {
                 {formatAmount(Math.abs(tx.amount), 6)} {symbol}
               </Body>
               <Caption style={styles.transactionFiat}>
-                {formatFiat(Math.abs(tx.total_fiat))}
+                {formatFiatUsd(Math.abs(tx.total_fiat))}
               </Caption>
             </View>
           </Pressable>
@@ -434,6 +442,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   amountCardValue: {
+    marginBottom: spacing.xs,
+  },
+  amountCardValueText: {
+    fontSize: 20,
+    fontWeight: "600",
     marginBottom: spacing.xs,
   },
   amountCardLabel: {

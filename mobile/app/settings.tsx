@@ -12,7 +12,6 @@ import { useTheme, spacing, radius } from "@/src/theme";
 import { useLocale } from "@/src/i18n/LocaleProvider";
 import type { Locale } from "@/src/i18n";
 import { Body, Caption, Headline } from "@/components/ui";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ChevronRight,
   Moon,
@@ -37,22 +36,21 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+import { useCurrency, SUPPORTED_CURRENCIES } from "@/src/currency";
+import type { Currency } from "@/src/currency";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Language = Locale;
-type Currency = "USD" | "EUR" | "JPY";
-
-const CURRENCY_STORAGE_KEY = "app-currency";
 const APP_VERSION = "1.0.0";
 
 export default function SettingsScreen() {
   const { theme, mode, setMode, isDark } = useTheme();
   const { t, locale, setLocale } = useLocale();
+  const { currency: selectedCurrency, setCurrency } = useCurrency();
   const [faceIdEnabled, setFaceIdEnabled] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>("USD");
 
   const translateYLanguage = useSharedValue(0);
   const translateYCurrency = useSharedValue(0);
@@ -67,11 +65,16 @@ export default function SettingsScreen() {
     { code: "fr", label: t("settings.french") },
   ];
 
-  const currencies: { code: Currency; label: string }[] = [
-    { code: "USD", label: t("settings.usd") },
-    { code: "EUR", label: t("settings.eur") },
-    { code: "JPY", label: t("settings.jpy") },
-  ];
+  const currencies: { code: Currency; label: string }[] =
+    SUPPORTED_CURRENCIES.map((code) => ({
+      code,
+      label:
+        code === "USD"
+          ? t("settings.usd")
+          : code === "EUR"
+            ? t("settings.eur")
+            : t("settings.jpy"),
+    }));
 
   const getLanguageLabel = (code: Language) => {
     return (
@@ -86,30 +89,6 @@ export default function SettingsScreen() {
     );
   };
 
-  // Load saved currency on mount
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const savedCurrency = await AsyncStorage.getItem(CURRENCY_STORAGE_KEY);
-
-        if (
-          mounted &&
-          savedCurrency &&
-          (savedCurrency === "USD" ||
-            savedCurrency === "EUR" ||
-            savedCurrency === "JPY")
-        ) {
-          setSelectedCurrency(savedCurrency);
-        }
-      } catch (error) {
-        // Ignore errors
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (showLanguageModal) {
@@ -147,11 +126,10 @@ export default function SettingsScreen() {
 
   const handleCurrencyChange = useCallback(
     async (currency: Currency) => {
-      setSelectedCurrency(currency);
-      await AsyncStorage.setItem(CURRENCY_STORAGE_KEY, currency);
+      await setCurrency(currency);
       closeCurrencyModal();
     },
-    [closeCurrencyModal],
+    [closeCurrencyModal, setCurrency],
   );
 
   const panGestureLanguage = Gesture.Pan()

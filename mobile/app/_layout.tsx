@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Text, View, Pressable } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Settings, ChevronLeft } from "lucide-react-native";
-import { initFxRates } from "@/src/services/fx";
+import { CurrencyProvider } from "@/src/currency";
 
 function RootNavigator() {
   const { theme } = useTheme();
@@ -207,10 +207,6 @@ export default function RootLayout() {
     };
   }, []);
 
-  useEffect(() => {
-    initFxRates().catch(() => {});
-  }, []);
-
   if (dbError) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -231,7 +227,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <LocaleProvider initialLocale={initialLocale}>
-          <RootNavigator />
+          <CurrencyProvider>
+            <RootNavigator />
+          </CurrencyProvider>
         </LocaleProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

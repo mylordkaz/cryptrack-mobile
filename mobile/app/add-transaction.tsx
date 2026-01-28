@@ -23,12 +23,14 @@ import {
 } from "@/src/db/transactions";
 import { formatDateTime } from "@/src/utils/format";
 import { useCoins } from "@/src/hooks/useCoins";
+import { useCurrency } from "@/src/currency";
 
 type TxType = "BUY" | "SELL";
 
 export default function AddTransactionScreen() {
   const { theme, isDark } = useTheme();
   const { t } = useLocale();
+  const { currency, convertUsd, convertToUsd } = useCurrency();
   const { symbol, id } = useLocalSearchParams<{
     symbol?: string;
     id?: string;
@@ -51,6 +53,8 @@ export default function AddTransactionScreen() {
   const [totalFiat, setTotalFiat] = useState("");
   const [totalFiatDirty, setTotalFiatDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const currencySymbol =
+    currency === "USD" ? "$" : currency === "EUR" ? "€" : "¥";
 
   useEffect(() => {
     let cancelled = false;
@@ -64,11 +68,13 @@ export default function AddTransactionScreen() {
       setType(tx.type);
       setAssetSymbol(tx.asset_symbol);
       setAmount(Math.abs(tx.amount).toString());
-      setPricePerUnit(tx.price_per_unit_fiat.toString());
-      setFeeAmount(tx.fee_amount?.toString() ?? "");
+      setPricePerUnit(convertUsd(tx.price_per_unit_fiat).toString());
+      setFeeAmount(
+        tx.fee_amount ? convertUsd(tx.fee_amount).toString() : "",
+      );
       setNotes(tx.notes ?? "");
       setDate(new Date(tx.timestamp));
-      setTotalFiat(Math.abs(tx.total_fiat).toString());
+      setTotalFiat(convertUsd(Math.abs(tx.total_fiat)).toString());
       if (tx.fee_amount || tx.notes) {
         setShowOptionalFields(true);
       }
@@ -148,16 +154,21 @@ export default function AddTransactionScreen() {
     const totalFiatAbs = Number.isFinite(totalFiatNumAbs)
       ? totalFiatNumAbs
       : Number(computedTotalFiatAbs);
+    const totalFiatAbsUsd = convertToUsd(totalFiatAbs);
     const signedTotalFiat =
-      type === "BUY" ? -Math.abs(totalFiatAbs) : Math.abs(totalFiatAbs);
+      type === "BUY"
+        ? -Math.abs(totalFiatAbsUsd)
+        : Math.abs(totalFiatAbsUsd);
+    const priceUsd = convertToUsd(priceNum);
+    const feeUsd = feeNum !== null ? convertToUsd(feeNum) : null;
 
     const payload = {
       asset_symbol: assetSymbol.trim().toUpperCase(),
       amount: signedAmount,
-      price_per_unit_fiat: priceNum,
+      price_per_unit_fiat: priceUsd,
       fiat_currency: "USD",
-      fee_amount: feeNum,
-      fee_currency: feeNum ? "USD" : null,
+      fee_amount: feeUsd,
+      fee_currency: feeUsd ? "USD" : null,
       notes: notes.trim() ? notes.trim() : null,
       type,
       source: "MANUAL",
@@ -459,15 +470,15 @@ export default function AddTransactionScreen() {
             minHeight: 44,
           }}
         >
-          <Text
-            style={{
-              color: theme.textSecondary,
-              marginRight: spacing.xs,
-              fontSize: 15,
-            }}
-          >
-            $
-          </Text>
+        <Text
+          style={{
+            color: theme.textSecondary,
+            marginRight: spacing.xs,
+            fontSize: 15,
+          }}
+        >
+          {currencySymbol}
+        </Text>
           <TextInput
             value={totalFiat}
             onChangeText={(value) => {

@@ -1,9 +1,10 @@
-import { View, Modal, Pressable, Dimensions, StyleSheet } from "react-native";
+import { View, Modal, Pressable, Dimensions, StyleSheet, Text } from "react-native";
 import { useCallback, useEffect } from "react";
 import { Transaction } from "@/src/types/transaction";
 import { ThemeTokens, spacing, radius, useTheme } from "@/src/theme";
-import { formatFiat, formatAmount, formatDateTime } from "@/src/utils/format";
+import { formatAmount, formatDateTime } from "@/src/utils/format";
 import { useLocale } from "@/src/i18n/LocaleProvider";
+import { useCurrency } from "@/src/currency";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -43,6 +44,7 @@ export function TransactionDetailsBottomSheet({
 }: TransactionDetailsBottomSheetProps) {
   const { isDark } = useTheme();
   const { t } = useLocale();
+  const { formatFiatUsd } = useCurrency();
   const translateY = useSharedValue(0);
   const isDismissing = useSharedValue(false);
   const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -160,21 +162,41 @@ export function TransactionDetailsBottomSheet({
                 {/* Right: Price Metrics */}
                 <View style={styles.metricsSection}>
                   <View style={styles.metricItem}>
-                    <Caption>{t("transaction.priceAtTime")}</Caption>
-                    <Body>{formatFiat(transaction.price_per_unit_fiat)}</Body>
+                    <Caption style={styles.metricLabel}>
+                      {t("transaction.priceAtTime")}
+                    </Caption>
+                    <Text
+                      style={[styles.metricValue, { color: theme.text }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {formatFiatUsd(transaction.price_per_unit_fiat)}
+                    </Text>
                   </View>
                   <View style={styles.metricItem}>
-                    <Caption>{t("transaction.currentValue")}</Caption>
-                    <Body>
-                      {currentValue !== null ? formatFiat(currentValue) : "-"}
-                    </Body>
+                    <Caption style={styles.metricLabel}>
+                      {t("transaction.currentValue")}
+                    </Caption>
+                    <Text
+                      style={[styles.metricValue, { color: theme.text }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {currentValue !== null ? formatFiatUsd(currentValue) : "-"}
+                    </Text>
                   </View>
                   {transaction.type === "BUY" && (
                     <View style={styles.metricItem}>
-                      <Caption>{t("transaction.costBasis")}</Caption>
-                      <Body>
-                        {costBasis !== null ? formatFiat(costBasis) : "-"}
-                      </Body>
+                      <Caption style={styles.metricLabel}>
+                        {t("transaction.costBasis")}
+                      </Caption>
+                      <Text
+                        style={[styles.metricValue, { color: theme.text }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {costBasis !== null ? formatFiatUsd(costBasis) : "-"}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -185,7 +207,7 @@ export function TransactionDetailsBottomSheet({
                 <Body>
                   {transaction.fee_amount
                     ? transaction.fee_currency === transaction.fiat_currency
-                      ? formatFiat(transaction.fee_amount)
+                      ? formatFiatUsd(transaction.fee_amount)
                       : `${transaction.fee_amount} ${transaction.fee_currency}`
                     : "-"}
                 </Body>
@@ -290,6 +312,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: spacing.sm,
+  },
+  metricLabel: {
+    flex: 0,
+    flexShrink: 0,
+  },
+  metricValue: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "400",
+    textAlign: "right",
   },
   detailRow: {
     flexDirection: "row",

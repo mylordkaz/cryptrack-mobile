@@ -1,7 +1,7 @@
 import { View, StyleSheet, Pressable } from "react-native";
 import { useLocale } from "@/src/i18n/LocaleProvider";
 import { ThemeTokens, spacing, radius, useTheme } from "@/src/theme";
-import { formatFiat } from "@/src/utils/format";
+import { useCurrency } from "@/src/currency";
 import { HeroText, Caption, Body, Label } from "./ui";
 import { Plus } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -21,6 +21,7 @@ export function PortfolioTopSection({
   totalPnLPercentage,
 }: PortfolioTopSectionProps) {
   const { theme, isDark } = useTheme();
+  const { formatFiatUsd } = useCurrency();
   const { t } = useLocale();
   const router = useRouter();
   const isPositive = totalPnL >= 0;
@@ -34,7 +35,9 @@ export function PortfolioTopSection({
     <View style={styles.container}>
       <Label>{t("portfolio.totalValue")}</Label>
       <View style={styles.valueRow}>
-        <HeroText style={styles.heroValue}>{formatFiat(totalValue)}</HeroText>
+        <HeroText style={styles.heroValue}>
+          {formatFiatUsd(totalValue)}
+        </HeroText>
         <View style={{ flex: 1 }} />
         <Pressable
           onPress={() => router.push("/add-transaction")}
@@ -54,7 +57,7 @@ export function PortfolioTopSection({
       <View style={styles.metricsRow}>
         <View style={styles.metricItem}>
           <Caption>{t("portfolio.totalInvested")}</Caption>
-          <Body style={styles.metricValue}>{formatFiat(totalInvested)}</Body>
+          <Body style={styles.metricValue}>{formatFiatUsd(totalInvested)}</Body>
         </View>
 
         <View style={styles.metricItem}>
@@ -71,7 +74,7 @@ export function PortfolioTopSection({
             ]}
           >
             {pnlSign}
-            {formatFiat(totalPnL)}
+            {formatFiatUsd(totalPnL)}
             {pnlPercentText}
           </Body>
         </View>

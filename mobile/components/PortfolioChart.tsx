@@ -27,6 +27,7 @@ import { useLocale } from "@/src/i18n/LocaleProvider";
 import { formatShortDate } from "@/src/utils/format";
 import { AssetWithMetrics } from "@/src/math/types";
 import { usePortfolioHistory } from "@/src/hooks/usePortfolioHistory";
+import { useCurrency } from "@/src/currency";
 import interRegular from "@/assets/fonts/Inter-Regular.ttf";
 
 type ChartType = "performance" | "allocation";
@@ -110,6 +111,7 @@ interface PortfolioChartProps {
 export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
   const { theme } = useTheme();
   const { t, locale } = useLocale();
+  const { currency, convertUsd } = useCurrency();
   const [chartType, setChartType] = useState<ChartType>("performance");
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
   const { data: historyData, loading: historyLoading } = usePortfolioHistory(
@@ -361,17 +363,18 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
                         labelColor: theme.textSecondary,
                         font: axisFont ?? undefined,
                         formatYLabel: (value) => {
+                          const converted = convertUsd(value);
                           if (
                             typeof Intl !== "undefined" &&
                             typeof Intl.NumberFormat === "function"
                           ) {
                             return new Intl.NumberFormat(locale, {
                               style: "currency",
-                              currency: "USD",
+                              currency,
                               maximumFractionDigits: 0,
-                            }).format(value);
+                            }).format(converted);
                           }
-                          return `$${Math.round(value).toLocaleString()}`;
+                          return `${currency} ${Math.round(converted).toLocaleString()}`;
                         },
                         axisSide: "right",
                         labelPosition: "outset",
