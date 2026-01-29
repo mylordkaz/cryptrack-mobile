@@ -9,6 +9,7 @@ import {
   CoinMetadata,
 } from "@/src/db/coins";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { isPriceCacheStale, PRICE_CACHE_TTL_MS } from "@/src/hooks/priceCache";
 
 export type Coin = {
   id: string;
@@ -59,7 +60,6 @@ const buildCoinsFromMeta = (coins: CoinMetaResponse["coins"]): Coin[] =>
   }));
 
 const PRICE_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const PRICE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const PRICE_LAST_FETCH_KEY = "prices-last-fetch-at";
 
 export function useCoins(refreshKey: number = 0) {
@@ -168,10 +168,7 @@ export function useCoins(refreshKey: number = 0) {
           try {
             const lastFetchRaw = await AsyncStorage.getItem(PRICE_LAST_FETCH_KEY);
             const lastFetch = lastFetchRaw ? Number(lastFetchRaw) : null;
-            const isStale =
-              !lastFetch ||
-              Number.isNaN(lastFetch) ||
-              Date.now() - lastFetch >= PRICE_CACHE_TTL_MS;
+            const isStale = isPriceCacheStale(lastFetch, Date.now());
 
             if (!isStale) {
               const symbols = resolvedCoins.map((coin) => coin.symbol.toUpperCase());

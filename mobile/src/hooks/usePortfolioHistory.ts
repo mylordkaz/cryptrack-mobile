@@ -3,6 +3,11 @@ import { getAllTransactionsOrdered } from "@/src/db/transactions";
 import { getCoinsBySymbols } from "@/src/db/coins";
 import { Transaction } from "@/src/types/transaction";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  buildHistoryCacheKey,
+  buildHistoryFetchKey,
+  isHistoryCacheStale,
+} from "@/src/hooks/historyCache";
 
 type HistoryPoint = {
   timestamp: number;
@@ -21,9 +26,6 @@ const API_BASE_URL =
 const HISTORY_DAYS = 365;
 const HISTORY_INTERVAL = "daily";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const HISTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const HISTORY_CACHE_PREFIX = "history-cache:";
-const HISTORY_FETCH_PREFIX = "history-fetched-at:";
 
 const toDayStartUTC = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -105,11 +107,11 @@ export function usePortfolioHistory(symbols: string[]) {
         }
 
         const uniqueIds = Array.from(new Set(symbolToId.values()));
-        const cacheKeys = uniqueIds.map(
-          (id) => `${HISTORY_CACHE_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`,
+        const cacheKeys = uniqueIds.map((id) =>
+          buildHistoryCacheKey(id, HISTORY_DAYS, HISTORY_INTERVAL),
         );
-        const timeKeys = uniqueIds.map(
-          (id) => `${HISTORY_FETCH_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`,
+        const timeKeys = uniqueIds.map((id) =>
+          buildHistoryFetchKey(id, HISTORY_DAYS, HISTORY_INTERVAL),
         );
 
         const cacheEntries = await AsyncStorage.multiGet([
@@ -128,15 +130,20 @@ export function usePortfolioHistory(symbols: string[]) {
         const missingIds: string[] = [];
 
         for (const id of uniqueIds) {
-          const cacheKey = `${HISTORY_CACHE_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
-          const timeKey = `${HISTORY_FETCH_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
+          const cacheKey = buildHistoryCacheKey(
+            id,
+            HISTORY_DAYS,
+            HISTORY_INTERVAL,
+          );
+          const timeKey = buildHistoryFetchKey(
+            id,
+            HISTORY_DAYS,
+            HISTORY_INTERVAL,
+          );
           const cached = cacheMap.get(cacheKey);
           const fetchedAtRaw = cacheMap.get(timeKey);
           const fetchedAt = fetchedAtRaw ? Number(fetchedAtRaw) : null;
-          const isFresh =
-            fetchedAt !== null &&
-            !Number.isNaN(fetchedAt) &&
-            now - fetchedAt < HISTORY_CACHE_TTL_MS;
+          const isFresh = !isHistoryCacheStale(fetchedAt, now);
 
           if (cached) {
             try {
@@ -167,8 +174,16 @@ export function usePortfolioHistory(symbols: string[]) {
 
             for (const [id, history] of Object.entries(histories)) {
               historiesById.set(id, history);
-              const cacheKey = `${HISTORY_CACHE_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
-              const timeKey = `${HISTORY_FETCH_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
+              const cacheKey = buildHistoryCacheKey(
+                id,
+                HISTORY_DAYS,
+                HISTORY_INTERVAL,
+              );
+              const timeKey = buildHistoryFetchKey(
+                id,
+                HISTORY_DAYS,
+                HISTORY_INTERVAL,
+              );
               sets.push([cacheKey, JSON.stringify(history)]);
               sets.push([timeKey, nowStr]);
             }

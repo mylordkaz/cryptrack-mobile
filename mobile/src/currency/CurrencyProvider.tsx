@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { formatFiat } from "@/src/utils/format";
 import { getCachedFxRates, initFxRates } from "@/src/services/fx";
+import { convertToUsd as convertToUsdValue, convertUsd as convertUsdValue } from "@/src/currency/conversion";
 
 export type Currency = "USD" | "EUR" | "JPY";
 export const SUPPORTED_CURRENCIES: Currency[] = ["USD", "EUR", "JPY"];
@@ -79,9 +80,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return typeof value === "number" && value > 0 ? value : 1;
   }, [currency, fxRates]);
 
-  const convertUsd = (value: number) => value * rate;
-  const convertToUsd = (value: number) => (rate > 0 ? value / rate : value);
-  const formatFiatUsd = (value: number) => formatFiat(convertUsd(value), currency);
+  const convertUsd = (value: number) => convertUsdValue(value, rate);
+  const convertToUsd = (value: number) => convertToUsdValue(value, rate);
+  const formatFiatUsd = (value: number) =>
+    formatFiat(convertUsd(value), currency);
 
   const contextValue = useMemo(
     () => ({
