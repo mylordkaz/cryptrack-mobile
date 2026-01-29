@@ -32,8 +32,9 @@ func main() {
 	http.HandleFunc("/cmc/coins/meta", priceHandler.HandleGetCMCCoinMeta)
 	http.HandleFunc("/prices/latest", priceHandler.HandleGetLatestPrices)
 	http.HandleFunc("/cmc/prices/latest", priceHandler.HandleGetCMCLatestPrices)
-	http.HandleFunc("/prices/history", priceHandler.HandleGetHistory)
+	// Register more specific routes before less specific ones to avoid path conflicts
 	http.HandleFunc("/prices/history/batch", priceHandler.HandleGetHistoryBatch)
+	http.HandleFunc("/prices/history", priceHandler.HandleGetHistory)
 	http.HandleFunc("/fx", fxHandler.HandleGetRates)
 	http.HandleFunc("/health", priceHandler.HandleHealth)
 
