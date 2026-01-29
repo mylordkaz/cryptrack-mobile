@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { insertPricesBatch } from "@/src/db/prices";
+import { getLatestPrices } from "@/src/db/prices";
 import {
   saveCoinsBatch,
   getAllCoins,
@@ -7,6 +8,7 @@ import {
   getCoinsCount,
   CoinMetadata,
 } from "@/src/db/coins";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type Coin = {
   id: string;
@@ -57,6 +59,8 @@ const buildCoinsFromMeta = (coins: CoinMetaResponse["coins"]): Coin[] =>
   }));
 
 const PRICE_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const PRICE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const PRICE_LAST_FETCH_KEY = "prices-last-fetch-at";
 
 export function useCoins(refreshKey: number = 0) {
   const [coins, setCoins] = useState<Coin[]>([]);
@@ -162,6 +166,35 @@ export function useCoins(refreshKey: number = 0) {
           }> = [];
 
           try {
+            const lastFetchRaw = await AsyncStorage.getItem(PRICE_LAST_FETCH_KEY);
+            const lastFetch = lastFetchRaw ? Number(lastFetchRaw) : null;
+            const isStale =
+              !lastFetch ||
+              Number.isNaN(lastFetch) ||
+              Date.now() - lastFetch >= PRICE_CACHE_TTL_MS;
+
+            if (!isStale) {
+              const symbols = resolvedCoins.map((coin) => coin.symbol.toUpperCase());
+              const lastKnown = await getLatestPrices(symbols);
+              if (Object.keys(lastKnown).length > 0) {
+                const map: Record<string, number> = {};
+                const updatedCoins = resolvedCoins.map((coin) => {
+                  const row = lastKnown[coin.symbol.toUpperCase()];
+                  if (row?.price_fiat !== undefined) {
+                    map[coin.symbol.toUpperCase()] = row.price_fiat;
+                    return { ...coin, current_price: row.price_fiat };
+                  }
+                  return coin;
+                });
+
+                if (!cancelled) {
+                  setPriceMap(map);
+                  setCoins(updatedCoins);
+                }
+                return;
+              }
+            }
+
             const prices: LatestPricesResponse["prices"] = {};
             const timestamp = Date.now();
             const response = await fetch(`${API_BASE_URL}/cmc/prices/latest`);
@@ -205,6 +238,7 @@ export function useCoins(refreshKey: number = 0) {
             if (priceRows.length > 0) {
               await insertPricesBatch(priceRows);
             }
+            await AsyncStorage.setItem(PRICE_LAST_FETCH_KEY, String(timestamp));
           } catch {
             // Ignore price fetch errors when using metadata cache
           }

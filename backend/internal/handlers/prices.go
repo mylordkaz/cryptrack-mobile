@@ -233,6 +233,101 @@ func (h *PriceHandler) HandleGetHistory(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// HandleGetHistoryBatch handles GET /prices/history/batch
+// Example: /prices/history/batch?cmc_ids=1,1027&days=365&interval=daily
+func (h *PriceHandler) HandleGetHistoryBatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idsParam := strings.TrimSpace(r.URL.Query().Get("ids"))
+	cmcIDsParam := strings.TrimSpace(r.URL.Query().Get("cmc_ids"))
+	days := strings.TrimSpace(r.URL.Query().Get("days"))
+	interval := strings.TrimSpace(r.URL.Query().Get("interval"))
+
+	if idsParam == "" && cmcIDsParam == "" {
+		http.Error(w, "ids or cmc_ids query parameter is required", http.StatusBadRequest)
+		return
+	}
+	if days == "" {
+		days = "7"
+	}
+
+	if !isValidDays(days) {
+		http.Error(w, "days must be one of: 7,30,90,365", http.StatusBadRequest)
+		return
+	}
+
+	type batchResponse struct {
+		Histories map[string]*prices.HistoryResponse `json:"histories"`
+		Errors    map[string]string                `json:"errors,omitempty"`
+	}
+
+	histories := make(map[string]*prices.HistoryResponse)
+	errors := make(map[string]string)
+
+	if idsParam != "" {
+		ids := strings.Split(idsParam, ",")
+		for _, raw := range ids {
+			id := strings.TrimSpace(raw)
+			if id == "" {
+				continue
+			}
+			log.Printf("Fetching history from cache for %s (days=%s, interval=%s)", id, days, interval)
+			historyResp, err := h.service.GetHistoryCachedOnly(id, days, interval)
+			if err != nil {
+				errors[id] = err.Error()
+				continue
+			}
+			histories[id] = historyResp
+		}
+	}
+
+	if cmcIDsParam != "" {
+		cmcIDs := strings.Split(cmcIDsParam, ",")
+		for _, raw := range cmcIDs {
+			cmcID := strings.TrimSpace(raw)
+			if cmcID == "" {
+				continue
+			}
+
+			mappedID, err := h.service.ResolveCMCID(cmcID)
+			if err != nil {
+				errors[cmcID] = err.Error()
+				continue
+			}
+
+			log.Printf("Fetching history from cache for %s (days=%s, interval=%s)", mappedID, days, interval)
+			historyResp, err := h.service.GetHistoryCachedOnly(mappedID, days, interval)
+			if err != nil {
+				errors[cmcID] = err.Error()
+				continue
+			}
+			histories[cmcID] = historyResp
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(batchResponse{
+		Histories: histories,
+		Errors:    errors,
+	}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
 func isValidDays(days string) bool {
 	value, err := strconv.Atoi(days)
 	if err != nil {

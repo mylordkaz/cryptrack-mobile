@@ -33,6 +33,7 @@ func main() {
 	http.HandleFunc("/prices/latest", priceHandler.HandleGetLatestPrices)
 	http.HandleFunc("/cmc/prices/latest", priceHandler.HandleGetCMCLatestPrices)
 	http.HandleFunc("/prices/history", priceHandler.HandleGetHistory)
+	http.HandleFunc("/prices/history/batch", priceHandler.HandleGetHistoryBatch)
 	http.HandleFunc("/fx", fxHandler.HandleGetRates)
 	http.HandleFunc("/health", priceHandler.HandleHealth)
 
@@ -53,6 +54,7 @@ func main() {
 	log.Printf("   GET /prices/latest  - Get current prices for ids (cached 5m)")
 	log.Printf("   GET /cmc/prices/latest  - Get CMC latest prices (cached 5m)")
 	log.Printf("   GET /prices/history - Get historical prices (cached 1d)")
+	log.Printf("   GET /prices/history/batch - Get historical prices (cached 1d)")
 	log.Printf("   GET /fx     - Get latest FX rates from ECB (cached 24h)")
 	log.Printf("   GET /health - Health check")
 	log.Printf("")

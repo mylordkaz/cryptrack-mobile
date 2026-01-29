@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getAllTransactionsOrdered } from "@/src/db/transactions";
 import { getCoinsBySymbols } from "@/src/db/coins";
 import { Transaction } from "@/src/types/transaction";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type HistoryPoint = {
   timestamp: number;
@@ -18,7 +19,11 @@ type HistoryResponse = {
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 const HISTORY_DAYS = 365;
+const HISTORY_INTERVAL = "daily";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const HISTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const HISTORY_CACHE_PREFIX = "history-cache:";
+const HISTORY_FETCH_PREFIX = "history-fetched-at:";
 
 const toDayStartUTC = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -91,28 +96,98 @@ export function usePortfolioHistory(symbols: string[]) {
 
         const metadata = await getCoinsBySymbols(symbols);
         const historyBySymbol = new Map<string, Map<number, number>>();
+        const symbolToId = new Map<string, string>();
 
-        await Promise.all(
-          symbols.map(async (symbol) => {
-            const meta = metadata.get(symbol);
-            if (!meta) return;
+        for (const symbol of symbols) {
+          const meta = metadata.get(symbol);
+          if (!meta?.id) continue;
+          symbolToId.set(symbol, meta.id);
+        }
 
-            const response = await fetchWithTimeout(
-              `${API_BASE_URL}/prices/history?cmc_id=${meta.id}&days=${HISTORY_DAYS}&interval=daily`,
-              FETCH_TIMEOUT_MS,
-            );
-            if (!response.ok) return;
+        const uniqueIds = Array.from(new Set(symbolToId.values()));
+        const cacheKeys = uniqueIds.map(
+          (id) => `${HISTORY_CACHE_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`,
+        );
+        const timeKeys = uniqueIds.map(
+          (id) => `${HISTORY_FETCH_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`,
+        );
 
-            const payload = (await response.json()) as HistoryResponse;
-            const priceMap = new Map<number, number>();
+        const cacheEntries = await AsyncStorage.multiGet([
+          ...cacheKeys,
+          ...timeKeys,
+        ]);
+        const cacheMap = new Map<string, string>();
+        for (const [key, value] of cacheEntries) {
+          if (value != null) {
+            cacheMap.set(key, value);
+          }
+        }
 
-            for (const point of payload.prices ?? []) {
-              priceMap.set(toDayStartUTC(point.timestamp), point.price);
+        const now = Date.now();
+        const historiesById = new Map<string, HistoryResponse>();
+        const missingIds: string[] = [];
+
+        for (const id of uniqueIds) {
+          const cacheKey = `${HISTORY_CACHE_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
+          const timeKey = `${HISTORY_FETCH_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
+          const cached = cacheMap.get(cacheKey);
+          const fetchedAtRaw = cacheMap.get(timeKey);
+          const fetchedAt = fetchedAtRaw ? Number(fetchedAtRaw) : null;
+          const isFresh =
+            fetchedAt !== null &&
+            !Number.isNaN(fetchedAt) &&
+            now - fetchedAt < HISTORY_CACHE_TTL_MS;
+
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached) as HistoryResponse;
+              historiesById.set(id, parsed);
+              if (isFresh) {
+                continue;
+              }
+            } catch {
+              // fall through to fetch
+            }
+          }
+          missingIds.push(id);
+        }
+
+        if (missingIds.length > 0) {
+          const response = await fetchWithTimeout(
+            `${API_BASE_URL}/prices/history/batch?cmc_ids=${missingIds.join(",")}&days=${HISTORY_DAYS}&interval=${HISTORY_INTERVAL}`,
+            FETCH_TIMEOUT_MS,
+          );
+          if (response.ok) {
+            const payload = (await response.json()) as {
+              histories?: Record<string, HistoryResponse>;
+            };
+            const histories = payload.histories ?? {};
+            const nowStr = String(Date.now());
+            const sets: Array<[string, string]> = [];
+
+            for (const [id, history] of Object.entries(histories)) {
+              historiesById.set(id, history);
+              const cacheKey = `${HISTORY_CACHE_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
+              const timeKey = `${HISTORY_FETCH_PREFIX}${id}:${HISTORY_DAYS}:${HISTORY_INTERVAL}`;
+              sets.push([cacheKey, JSON.stringify(history)]);
+              sets.push([timeKey, nowStr]);
             }
 
-            historyBySymbol.set(symbol, priceMap);
-          }),
-        );
+            if (sets.length > 0) {
+              await AsyncStorage.multiSet(sets);
+            }
+          }
+        }
+
+        for (const [symbol, id] of symbolToId.entries()) {
+          const history = historiesById.get(id);
+          if (!history) continue;
+          const priceMap = new Map<number, number>();
+          for (const point of history.prices ?? []) {
+            priceMap.set(toDayStartUTC(point.timestamp), point.price);
+          }
+          historyBySymbol.set(symbol, priceMap);
+        }
 
         const symbolSet = new Set(symbols);
         const txBySymbol = new Map<string, Transaction[]>();
