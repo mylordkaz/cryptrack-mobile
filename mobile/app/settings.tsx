@@ -38,6 +38,7 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import { useCurrency, SUPPORTED_CURRENCIES } from "@/src/currency";
 import type { Currency } from "@/src/currency";
+import { DocumentBottomSheet } from "@/components/DocumentBottomSheet";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -51,6 +52,8 @@ export default function SettingsScreen() {
   const [faceIdEnabled, setFaceIdEnabled] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const translateYLanguage = useSharedValue(0);
   const translateYCurrency = useSharedValue(0);
@@ -437,6 +440,7 @@ export default function SettingsScreen() {
             {/* Terms of Use */}
             <TouchableOpacity
               style={[styles.settingItem, { borderBottomColor: theme.border }]}
+              onPress={() => setShowTermsModal(true)}
             >
               <View style={styles.iconContainer}>
                 <FileText size={20} color={theme.accent} />
@@ -450,7 +454,10 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             {/* Privacy Policy */}
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => setShowPrivacyModal(true)}
+            >
               <View style={styles.iconContainer}>
                 <Shield size={20} color={theme.accent} />
               </View>
@@ -580,6 +587,24 @@ export default function SettingsScreen() {
           </GestureDetector>
         </View>
       </Modal>
+
+      {/* Terms of Use Modal */}
+      <DocumentBottomSheet
+        visible={showTermsModal}
+        titleKey="settings.termsOfUse"
+        contentKey="legal.termsOfUse"
+        theme={theme}
+        onClose={() => setShowTermsModal(false)}
+      />
+
+      {/* Privacy Policy Modal */}
+      <DocumentBottomSheet
+        visible={showPrivacyModal}
+        titleKey="settings.privacyPolicy"
+        contentKey="legal.privacyPolicy"
+        theme={theme}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </>
   );
 }

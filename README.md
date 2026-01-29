@@ -1,115 +1,74 @@
-**Decision Summary – Crypto Portfolio Mobile App Architecture**
+# Crypto Portfolio (Mobile + Backend)
 
----
+Manual-first crypto portfolio tracker with an offline-first React Native app and an optional Go backend for market data.
 
-### Product Direction
+## Current Status (v1)
 
-* Manual-first crypto portfolio tracker.
-* Users explicitly enter transactions; accuracy and control are priorities.
-* Wallets and exchanges are **optional, read-only helpers** for importing data.
-* App must function offline and without backend dependency.
+**Mobile (Expo / React Native)**
+- Offline-first with SQLite as the source of truth.
+- Manual transaction entry (buy/sell) with fee support.
+- Portfolio math: average cost, realized/unrealized PnL, totals.
+- Portfolio overview + asset detail screens.
+- Charts: performance + allocation.
+- Fiat currency display (USD/EUR/JPY) with FX conversion.
+- Local caching for:
+  - Coin metadata (7 days)
+  - Latest prices (5 minutes)
+  - Historical prices (24 hours)
 
----
+**Backend (Go)**
+- Stateless, cache-heavy utility service.
+- Coin metadata and latest prices.
+- Historical prices (cached-only to protect rate limits).
+- FX rates from ECB converted to USD base.
 
-### Source of Truth
+## Architecture Principles
 
-* **User device is the source of truth**.
-* All transactions, positions, and portfolio state are stored locally.
-* Backend never owns or mutates user portfolio data.
+- **Device is the source of truth.** Transactions and derived portfolio data live locally.
+- **Backend is optional.** App remains usable offline.
+- **No user accounts or auth** (v1).
 
----
+## Backend Endpoints
 
-### Backend Choice
+Base URL: `http://localhost:8080`
 
-* Backend implemented in **Go**.
-* Rationale:
+- `GET /cmc/coins/meta`  
+  Coin metadata (cached 7d)
+- `GET /cmc/prices/latest`  
+  Latest prices (cached 5m)
+- `GET /prices/history`  
+  Historical prices (cached 24h)
+- `GET /prices/history/batch`  
+  Batch historical prices (cached 24h)
+- `GET /fx`  
+  FX rates (ECB, converted to USD base, cached 24h)
+- `GET /health`  
+  Health check
 
-  * Deterministic, strict, and maintainable logic
-  * Excellent for sync jobs, decoding, and background workers
-  * Simple deployment (single static binary)
-  * Good credibility and trust optics for crypto users
+## Local Caching (Mobile)
 
----
+- **Latest prices**: fetch at startup and refresh every 5 minutes, with local timestamp gating.
+- **Historical prices**: cached in AsyncStorage per asset for 24 hours.
+- **FX rates**: cached in AsyncStorage, refreshed every 24 hours.
 
-### Backend Responsibilities (Utility-Only)
+## Development
 
-1. **Price Data**
+### Mobile
 
-   * Live and historical prices
-   * Symbol normalization
-   * Aggressive caching and rate-limit handling
+```
+cd mobile
+npx expo run:ios
+npx expo start --dev-client
+```
 
-2. **Wallet Import (Read-Only)**
+### Backend
 
-   * Fetch raw blockchain transactions
-   * Decode transfers and swaps
-   * Normalize into internal transaction format
-   * Propose data only; user must confirm
+```
+cd backend
+go run ./cmd/api
+```
 
-3. **Exchange Import (Read-Only)**
+## Notes
 
-   * Handle API auth, pagination, retries
-   * Import trades, deposits, withdrawals
-   * Normalize data for user review
-
-4. **Optional Heavy Calculations**
-
-   * Tax logic (FIFO/LIFO)
-   * Capital gains
-   * Cross-currency normalization
-
-5. **Optional Encrypted Backup**
-
-   * Store encrypted blobs only
-   * Backend never accesses plaintext data
-
----
-
-### Explicit Non-Responsibilities
-
-* No portfolio balances stored server-side
-* No PnL, positions, or allocations persisted
-* No private keys, signing, or trading
-* No automatic data correction or mutation
-* No UI or presentation logic
-
----
-
-### Architecture Overview
-
-* **Mobile App (React Native)**
-
-  * SQLite local storage
-  * Offline-first
-  * All portfolio calculations local
-* **Backend (Go)**
-
-  * Stateless utility services
-  * Optional dependency
-
----
-
-### Design Principles
-
-* Manual control over automation
-* Deterministic calculations
-* Privacy-first and trust-focused
-* Minimal backend surface area
-* Long-term maintainability
-
----
-
-### Key Rule
-
-If the backend goes offline, **the app still works**.
-
----
-
-This is a lightweight, durable architecture optimized for correctness, user trust, and long-term stability rather than feature sprawl or centralization.
-
----
-
-### Development (Mobile)
-
-* Build and run the dev client (Skia/victory-native support): `cd mobile && npx expo run:ios`
-* Start Metro for the dev client: `cd mobile && npx expo start --dev-client`
+- All stored fiat values are **USD**. UI converts to selected currency for display.
+- Import helpers (CSV / exchange / wallet) are planned but not in v1.
