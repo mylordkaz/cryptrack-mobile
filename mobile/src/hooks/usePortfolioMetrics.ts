@@ -7,11 +7,13 @@ import {
 import { getAllTransactionsOrdered } from "../db/transactions";
 import { computeAssetMetrics } from "../math/assetMath";
 import { getLatestPrices } from "../db/prices";
+import { usePortfolio } from "@/src/portfolio";
 
 export function usePortfolioMetrics(priceMap: Record<string, number>, refreshKey: number = 0) {
   const [portfolio, setPortfolio] = useState<PortfolioMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { activePortfolioId } = usePortfolio();
 
   useEffect(() => {
     let cancelled = false;
@@ -21,7 +23,7 @@ export function usePortfolioMetrics(priceMap: Record<string, number>, refreshKey
         setLoading(true);
         setError(null);
 
-        const rows = await getAllTransactionsOrdered();
+        const rows = await getAllTransactionsOrdered(activePortfolioId);
         const transactionsBySymbol = new Map<string, AssetTransaction[]>();
 
         for (const tx of rows) {
@@ -116,7 +118,7 @@ export function usePortfolioMetrics(priceMap: Record<string, number>, refreshKey
     return () => {
       cancelled = true;
     };
-  }, [priceMap, refreshKey]);
+  }, [priceMap, refreshKey, activePortfolioId]);
 
   return { portfolio, loading, error };
 }

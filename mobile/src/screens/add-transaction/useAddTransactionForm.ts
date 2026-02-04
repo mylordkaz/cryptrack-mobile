@@ -9,6 +9,8 @@ import {
 import { useCoins } from "@/src/hooks/useCoins";
 import { useCurrency } from "@/src/currency";
 import { useLocale } from "@/src/i18n/LocaleProvider";
+import { usePortfolio } from "@/src/portfolio";
+import { buildTransactionPayload } from "./buildTransactionPayload";
 
 export type TxType = "BUY" | "SELL";
 
@@ -59,6 +61,7 @@ type UseAddTransactionForm = {
 export function useAddTransactionForm(): UseAddTransactionForm {
   const { t } = useLocale();
   const { currency, convertUsd, convertToUsd } = useCurrency();
+  const { activePortfolioId } = usePortfolio();
   const { symbol, id } = useLocalSearchParams<SearchParams>();
   const router = useRouter();
   const { coins, loading: coinsLoading } = useCoins();
@@ -87,7 +90,7 @@ export function useAddTransactionForm(): UseAddTransactionForm {
     (async () => {
       if (!id) return;
 
-      const tx = await getTransactionById(id);
+      const tx = await getTransactionById(id, activePortfolioId);
       if (!tx || cancelled) return;
 
       setType(tx.type);
@@ -106,7 +109,7 @@ export function useAddTransactionForm(): UseAddTransactionForm {
     return () => {
       cancelled = true;
     };
-  }, [id, convertUsd]);
+  }, [id, convertUsd, activePortfolioId]);
 
   useEffect(() => {
     if (symbol) return;
@@ -162,33 +165,20 @@ export function useAddTransactionForm(): UseAddTransactionForm {
       return;
     }
 
-    const signedAmount = type === "BUY" ? amountNum : -amountNum;
     const totalFiatNumAbs = Number(totalFiat);
-    const totalFiatAbs = Number.isFinite(totalFiatNumAbs)
-      ? totalFiatNumAbs
-      : Number(computedTotalFiatAbs);
-    const totalFiatAbsUsd = convertToUsd(totalFiatAbs);
-    const signedTotalFiat =
-      type === "BUY"
-        ? -Math.abs(totalFiatAbsUsd)
-        : Math.abs(totalFiatAbsUsd);
-    const priceUsd = convertToUsd(priceNum);
-    const feeUsd = feeNum !== null ? convertToUsd(feeNum) : null;
-
-    const payload = {
-      asset_symbol: assetSymbol.trim().toUpperCase(),
-      amount: signedAmount,
-      price_per_unit_fiat: priceUsd,
-      fiat_currency: "USD",
-      fee_amount: feeUsd,
-      fee_currency: feeUsd ? "USD" : null,
-      notes: notes.trim() ? notes.trim() : null,
+    const payload = buildTransactionPayload({
+      activePortfolioId,
+      assetSymbol,
       type,
-      source: "MANUAL" as const,
-      external_id: null,
+      amountNum,
+      priceNum,
+      feeNum,
+      notes,
       timestamp: date.getTime(),
-      total_fiat: Number.isFinite(signedTotalFiat) ? signedTotalFiat : undefined,
-    };
+      totalFiatAbs: totalFiatNumAbs,
+      computedTotalFiatAbs,
+      convertToUsd,
+    });
 
     if (isEditing && id) {
       await updateTransaction(id, payload);

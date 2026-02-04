@@ -3,6 +3,7 @@ export type TransactionSource = "MANUAL" | "WALLET" | "EXCHANGE";
 
 export interface Transaction {
   id: string;
+  portfolio_id: string;
   asset_symbol: string;
 
   /** Signed amount: +in / -out */

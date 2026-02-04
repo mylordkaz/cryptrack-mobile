@@ -1,6 +1,15 @@
 import { Transaction, TransactionType } from "../types/transaction";
 import { uuid } from "../utils/uuid";
 import { openDB } from "./db";
+import { getOrCreateDefaultPortfolioId } from "./portfolios";
+
+type TransactionInput = Omit<
+  Transaction,
+  "id" | "created_at" | "updated_at" | "total_fiat" | "portfolio_id"
+> & {
+  portfolio_id?: string;
+  total_fiat?: number;
+};
 
 function assertAmountSign(type: TransactionType, amount: number) {
   if (type === "BUY" && amount <= 0) {
@@ -13,11 +22,10 @@ function assertAmountSign(type: TransactionType, amount: number) {
 }
 
 export async function insertTransaction(
-  tx: Omit<Transaction, "id" | "created_at" | "updated_at" | "total_fiat"> & {
-    total_fiat?: number;
-  },
+  tx: TransactionInput,
 ): Promise<Transaction> {
   const db = await openDB();
+  const portfolioId = tx.portfolio_id ?? (await getOrCreateDefaultPortfolioId());
 
   // Invariants
   assertAmountSign(tx.type, tx.amount);
@@ -43,6 +51,7 @@ export async function insertTransaction(
 
   const fullTx: Transaction = {
     ...tx,
+    portfolio_id: portfolioId,
     id: await uuid(),
     total_fiat: totalFiat,
     created_at: now,
@@ -53,6 +62,7 @@ export async function insertTransaction(
     `
     INSERT INTO transactions (
       id,
+      portfolio_id,
       asset_symbol,
       amount,
       price_per_unit_fiat,
@@ -67,10 +77,11 @@ export async function insertTransaction(
       total_fiat,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       fullTx.id,
+      fullTx.portfolio_id,
       fullTx.asset_symbol,
       fullTx.amount,
       fullTx.price_per_unit_fiat,
@@ -93,13 +104,17 @@ export async function insertTransaction(
 
 export async function getTransactionsByAsset(
   assetSymbol: string,
+  portfolioId?: string,
 ): Promise<Transaction[]> {
   const db = await openDB();
+  const resolvedPortfolioId =
+    portfolioId ?? (await getOrCreateDefaultPortfolioId());
 
   const rows = await db.getAllAsync<Transaction>(
     `
     SELECT
       id,
+      portfolio_id,
       asset_symbol,
       amount,
       price_per_unit_fiat,
@@ -115,36 +130,45 @@ export async function getTransactionsByAsset(
       created_at,
       updated_at
     FROM transactions
-    WHERE asset_symbol = ?
+    WHERE asset_symbol = ? AND portfolio_id = ?
     ORDER BY timestamp ASC
     `,
-    [assetSymbol],
+    [assetSymbol, resolvedPortfolioId],
   );
 
   return rows;
 }
 
-export async function getAllUniqueAssets(): Promise<string[]> {
+export async function getAllUniqueAssets(portfolioId?: string): Promise<string[]> {
   const db = await openDB();
+  const resolvedPortfolioId =
+    portfolioId ?? (await getOrCreateDefaultPortfolioId());
 
   const rows = await db.getAllAsync<{ asset_symbol: string }>(
     `
     SELECT DISTINCT asset_symbol
     FROM transactions
+    WHERE portfolio_id = ?
     ORDER BY asset_symbol ASC
     `,
+    [resolvedPortfolioId],
   );
 
   return rows.map((row) => row.asset_symbol);
 }
 
-export async function getAllTransactionsOrdered(): Promise<Transaction[]> {
+export async function getAllTransactionsOrdered(
+  portfolioId?: string,
+): Promise<Transaction[]> {
   const db = await openDB();
+  const resolvedPortfolioId =
+    portfolioId ?? (await getOrCreateDefaultPortfolioId());
 
   const rows = await db.getAllAsync<Transaction>(
     `
     SELECT
       id,
+      portfolio_id,
       asset_symbol,
       amount,
       price_per_unit_fiat,
@@ -160,8 +184,10 @@ export async function getAllTransactionsOrdered(): Promise<Transaction[]> {
       created_at,
       updated_at
     FROM transactions
+    WHERE portfolio_id = ?
     ORDER BY asset_symbol ASC, timestamp ASC
     `,
+    [resolvedPortfolioId],
   );
 
   return rows;
@@ -169,13 +195,17 @@ export async function getAllTransactionsOrdered(): Promise<Transaction[]> {
 
 export async function getTransactionById(
   id: string,
+  portfolioId?: string,
 ): Promise<Transaction | null> {
   const db = await openDB();
+  const resolvedPortfolioId =
+    portfolioId ?? (await getOrCreateDefaultPortfolioId());
 
   const row = await db.getFirstAsync<Transaction>(
     `
     SELECT
       id,
+      portfolio_id,
       asset_symbol,
       amount,
       price_per_unit_fiat,
@@ -191,9 +221,9 @@ export async function getTransactionById(
       created_at,
       updated_at
     FROM transactions
-    WHERE id = ?
+    WHERE id = ? AND portfolio_id = ?
     `,
-    [id],
+    [id, resolvedPortfolioId],
   );
 
   return row ?? null;
@@ -201,11 +231,10 @@ export async function getTransactionById(
 
 export async function updateTransaction(
   id: string,
-  tx: Omit<Transaction, "id" | "created_at" | "updated_at" | "total_fiat"> & {
-    total_fiat?: number;
-  },
+  tx: TransactionInput,
 ): Promise<void> {
   const db = await openDB();
+  const portfolioId = tx.portfolio_id ?? (await getOrCreateDefaultPortfolioId());
 
   assertAmountSign(tx.type, tx.amount);
 
@@ -229,6 +258,7 @@ export async function updateTransaction(
     `
     UPDATE transactions
     SET
+      portfolio_id = ?,
       asset_symbol = ?,
       amount = ?,
       price_per_unit_fiat = ?,
@@ -245,6 +275,7 @@ export async function updateTransaction(
     WHERE id = ?
     `,
     [
+      portfolioId,
       tx.asset_symbol,
       tx.amount,
       tx.price_per_unit_fiat,

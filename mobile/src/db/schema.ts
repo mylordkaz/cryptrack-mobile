@@ -1,6 +1,19 @@
+export const PORTFOLIOS_SCHEMA = `
+CREATE TABLE IF NOT EXISTS portfolios (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolios_name
+  ON portfolios(name);
+`;
+
 export const TRANSACTIONS_SCHEMA = `
 CREATE TABLE IF NOT EXISTS transactions (
   id TEXT PRIMARY KEY NOT NULL,
+  portfolio_id TEXT NOT NULL,
 
   asset_symbol TEXT NOT NULL,
 
@@ -26,7 +39,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   total_fiat REAL NOT NULL,
 
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+
+  FOREIGN KEY (portfolio_id) REFERENCES portfolios(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_asset
@@ -37,6 +52,9 @@ CREATE INDEX IF NOT EXISTS idx_transactions_timestamp
 
 CREATE INDEX IF NOT EXISTS idx_transactions_external
   ON transactions(external_id);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_portfolio_ts
+  ON transactions(portfolio_id, timestamp);
 `;
 
 export const PRICES_SCHEMA = `

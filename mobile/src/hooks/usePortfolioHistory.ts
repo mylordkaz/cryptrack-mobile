@@ -8,6 +8,7 @@ import {
   buildHistoryFetchKey,
   isHistoryCacheStale,
 } from "@/src/hooks/historyCache";
+import { usePortfolio } from "@/src/portfolio";
 
 type HistoryPoint = {
   timestamp: number;
@@ -63,6 +64,7 @@ export function usePortfolioHistory(symbols: string[]) {
   const [data, setData] = useState<Array<{ x: number; y: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { activePortfolioId } = usePortfolio();
   const normalizedSymbols = Array.from(
     new Set(symbols.map((s) => s.toUpperCase())),
   );
@@ -85,7 +87,7 @@ export function usePortfolioHistory(symbols: string[]) {
         setLoading(true);
         setError(null);
 
-        const transactions = await getAllTransactionsOrdered();
+        const transactions = await getAllTransactionsOrdered(activePortfolioId);
         const symbols = normalizedSymbols;
 
         if (symbols.length === 0) {
@@ -272,7 +274,7 @@ export function usePortfolioHistory(symbols: string[]) {
     return () => {
       cancelled = true;
     };
-  }, [symbolsKey]);
+  }, [symbolsKey, activePortfolioId]);
 
   return { data, loading, error };
 }

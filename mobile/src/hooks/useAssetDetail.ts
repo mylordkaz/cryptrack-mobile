@@ -4,6 +4,7 @@ import { AssetMetrics, AssetTransaction } from "../math/types";
 import { getTransactionsByAsset } from "../db/transactions";
 import { getLatestPrices } from "../db/prices";
 import { Transaction } from "../types/transaction";
+import { usePortfolio } from "@/src/portfolio";
 
 type AssetDetailData = {
   metrics: AssetMetrics;
@@ -21,6 +22,7 @@ export function useAssetDetail(
   const [data, setData] = useState<AssetDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { activePortfolioId } = usePortfolio();
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +41,7 @@ export function useAssetDetail(
         setLoading(true);
         setError(null);
 
-        const rows = await getTransactionsByAsset(assetSymbol);
+        const rows = await getTransactionsByAsset(assetSymbol, activePortfolioId);
         const txs: AssetTransaction[] = rows.map((tx) => ({
           type: tx.type,
           amount: tx.amount,
@@ -77,7 +79,7 @@ export function useAssetDetail(
     return () => {
       cancelled = true;
     };
-  }, [assetSymbol, priceMap, refreshKey]);
+  }, [assetSymbol, priceMap, refreshKey, activePortfolioId]);
 
   return { data, loading, error };
 }

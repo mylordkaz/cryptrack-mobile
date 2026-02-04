@@ -9,6 +9,7 @@ import { Text, View, Pressable } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Settings, ChevronLeft } from "lucide-react-native";
 import { CurrencyProvider } from "@/src/currency";
+import { PortfolioProvider } from "@/src/portfolio";
 
 function RootNavigator() {
   const { theme } = useTheme();
@@ -228,7 +229,9 @@ export default function RootLayout() {
       <ThemeProvider>
         <LocaleProvider initialLocale={initialLocale}>
           <CurrencyProvider>
-            <RootNavigator />
+            <PortfolioProvider>
+              <RootNavigator />
+            </PortfolioProvider>
           </CurrencyProvider>
         </LocaleProvider>
       </ThemeProvider>
