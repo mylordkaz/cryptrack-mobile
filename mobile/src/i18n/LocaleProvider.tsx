@@ -10,7 +10,7 @@ import {
   Locale,
   normalizeLocale,
   setLocale as setLocaleInternal,
-  t,
+  t as tInternal,
 } from "./index";
 
 interface LocaleContextValue {
@@ -38,13 +38,19 @@ export function LocaleProvider({
     setLocaleState(normalized);
   }, []);
 
+  const t = useCallback(
+    (key: string, options?: Record<string, unknown>) => tInternal(key, options),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale],
+  );
+
   const value = useMemo(
     () => ({
       locale,
       setLocale,
       t,
     }),
-    [locale, setLocale],
+    [locale, setLocale, t],
   );
 
   return (
