@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity, Switch, ScrollView } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Switch, ScrollView, Linking } from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { useLocale } from "@/src/i18n/LocaleProvider";
 import type { Locale } from "@/src/i18n";
@@ -89,6 +89,12 @@ export default function SettingsScreen() {
     },
     [setCurrency],
   );
+
+  const handleFeedback = useCallback(() => {
+    const subject = encodeURIComponent("Cryptrack Feedback");
+    const body = encodeURIComponent(`App Version: ${APP_VERSION}\n\n`);
+    Linking.openURL(`mailto:kev.tim@protonmail.com?subject=${subject}&body=${body}`);
+  }, []);
 
   return (
     <>
@@ -262,6 +268,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.settingItem, { borderBottomColor: theme.border }]}
+            onPress={handleFeedback}
           >
             <View style={styles.iconContainer}>
               <MessageSquare size={20} color={theme.accent} />
