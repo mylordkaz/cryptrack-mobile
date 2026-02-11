@@ -235,10 +235,10 @@ export default function AddTransactionScreen() {
                 alignItems: "center",
                 opacity: pressed ? 0.8 : 1,
                 shadowColor: theme.accent,
-                shadowOpacity: 0.4,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 0 },
-                elevation: 6,
+                shadowOpacity: 0.18,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 3,
               }}
             >
               <Text

@@ -126,11 +126,11 @@ export const darkShadow = Platform.select({
   ios: {
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   android: {
-    elevation: 4,
+    elevation: 3,
   },
   default: {},
 });
