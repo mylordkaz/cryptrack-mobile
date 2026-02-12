@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  countTransactions,
   getTransactionById,
   insertTransaction,
   updateTransaction,
 } from "@/src/db/transactions";
+import * as StoreReview from "expo-store-review";
 import { useCoins } from "@/src/hooks/useCoins";
 import { useCurrency } from "@/src/currency";
 import { useLocale } from "@/src/i18n/LocaleProvider";
@@ -57,6 +60,11 @@ type UseAddTransactionForm = {
   coins: ReturnType<typeof useCoins>["coins"];
   selectedCoin: ReturnType<typeof useCoins>["coins"][number] | undefined;
 };
+
+const REVIEW_PROMPT_KEY_PREFIX = "review-prompted";
+
+const buildReviewPromptKey = (portfolioId: string | null) =>
+  `${REVIEW_PROMPT_KEY_PREFIX}:${portfolioId ?? "default"}`;
 
 export function useAddTransactionForm(): UseAddTransactionForm {
   const { t } = useLocale();
@@ -187,6 +195,17 @@ export function useAddTransactionForm(): UseAddTransactionForm {
     }
 
     await insertTransaction(payload);
+
+    const reviewPromptKey = buildReviewPromptKey(activePortfolioId);
+    const alreadyPrompted = await AsyncStorage.getItem(reviewPromptKey);
+    const total = await countTransactions(activePortfolioId);
+    if (!alreadyPrompted && total === 3) {
+      const available = await StoreReview.isAvailableAsync();
+      if (available) {
+        StoreReview.requestReview();
+        await AsyncStorage.setItem(reviewPromptKey, "true");
+      }
+    }
 
     router.back();
   };

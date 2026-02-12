@@ -304,3 +304,14 @@ export async function deleteTransaction(id: string): Promise<void> {
     [id],
   );
 }
+
+export async function countTransactions(portfolioId?: string): Promise<number> {
+  const db = await openDB();
+  const resolvedPortfolioId =
+    portfolioId ?? (await getOrCreateDefaultPortfolioId());
+  const row = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM transactions WHERE portfolio_id = ?`,
+    [resolvedPortfolioId],
+  );
+  return row?.count ?? 0;
+}
