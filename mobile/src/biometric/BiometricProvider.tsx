@@ -112,7 +112,7 @@ export function BiometricProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: t("settings.biometricPrompt"),
-        disableDeviceFallback: false,
+        disableDeviceFallback: true,
       });
       return result.success;
     } catch {
