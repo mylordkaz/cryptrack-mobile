@@ -18,6 +18,7 @@ import {
 } from "lucide-react-native";
 import { useState, useMemo, useCallback } from "react";
 import { useCurrency, SUPPORTED_CURRENCIES } from "@/src/currency";
+import { useBiometric, PasswordSetupSheet } from "@/src/biometric";
 import type { Currency } from "@/src/currency";
 import { DocumentBottomSheet } from "@/components/DocumentBottomSheet";
 import { SettingsSection } from "@/src/screens/settings/SettingsSection";
@@ -29,7 +30,7 @@ export default function SettingsScreen() {
   const { theme, mode, setMode, isDark } = useTheme();
   const { t, locale, setLocale } = useLocale();
   const { currency: selectedCurrency, setCurrency } = useCurrency();
-  const [faceIdEnabled, setFaceIdEnabled] = useState(false);
+  const { enabled: faceIdEnabled, enableBiometric, disableBiometric } = useBiometric();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -246,7 +247,7 @@ export default function SettingsScreen() {
             </View>
             <Switch
               value={faceIdEnabled}
-              onValueChange={setFaceIdEnabled}
+              onValueChange={(v) => v ? enableBiometric() : disableBiometric()}
               trackColor={{ false: theme.border, true: theme.accent + "40" }}
               thumbColor={faceIdEnabled ? theme.accent : theme.textSecondary}
             />
@@ -346,6 +347,8 @@ export default function SettingsScreen() {
         theme={theme}
         onClose={() => setShowPrivacyModal(false)}
       />
+
+      <PasswordSetupSheet />
     </>
   );
 }

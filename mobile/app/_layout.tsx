@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Text, View, Pressable } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Settings, ChevronLeft } from "lucide-react-native";
+import { BiometricProvider, BiometricLockScreen, useBiometric } from "@/src/biometric";
 import { CurrencyProvider } from "@/src/currency";
 import { PortfolioProvider } from "@/src/portfolio";
 
@@ -15,8 +16,10 @@ function RootNavigator() {
   const { theme } = useTheme();
   const router = useRouter();
   const { t } = useLocale();
+  const { isLocked } = useBiometric();
 
   return (
+    <View style={{ flex: 1 }}>
     <Stack
       screenOptions={{
         headerStyle: {
@@ -164,6 +167,8 @@ function RootNavigator() {
         }}
       />
     </Stack>
+    {isLocked && <BiometricLockScreen />}
+    </View>
   );
 }
 
@@ -229,9 +234,11 @@ export default function RootLayout() {
       <ThemeProvider>
         <LocaleProvider initialLocale={initialLocale}>
           <CurrencyProvider>
-            <PortfolioProvider>
-              <RootNavigator />
-            </PortfolioProvider>
+            <BiometricProvider>
+              <PortfolioProvider>
+                <RootNavigator />
+              </PortfolioProvider>
+            </BiometricProvider>
           </CurrencyProvider>
         </LocaleProvider>
       </ThemeProvider>
