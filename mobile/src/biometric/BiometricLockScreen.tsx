@@ -28,13 +28,23 @@ const ROWS = [
 export function BiometricLockScreen() {
   const { theme, isDark } = useTheme();
   const { t } = useLocale();
-  const { isAuthenticating, authenticate, unlock, verifyFallbackPassword } = useBiometric();
+  const {
+    isAuthenticating,
+    authenticate,
+    unlock,
+    verifyFallbackPassword,
+    pinLockedUntil,
+    remainingPinAttempts,
+  } = useBiometric();
 
   const [showNumpad, setShowNumpad] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [lockoutRemaining, setLockoutRemaining] = useState<number | null>(null);
   const triggered = useRef(false);
+  const isPinLocked =
+    pinLockedUntil !== null && pinLockedUntil > Date.now();
 
   useEffect(() => {
     if (triggered.current) return;
@@ -42,6 +52,20 @@ export function BiometricLockScreen() {
     runFaceID();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!pinLockedUntil) {
+      setLockoutRemaining(null);
+      return;
+    }
+    const updateRemaining = () => {
+      const diff = pinLockedUntil - Date.now();
+      setLockoutRemaining(diff > 0 ? Math.ceil(diff / 1000) : 0);
+    };
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [pinLockedUntil]);
 
   const runFaceID = async () => {
     setShowNumpad(false);
@@ -53,14 +77,14 @@ export function BiometricLockScreen() {
   };
 
   const handleDigit = async (d: string) => {
-    if (isVerifying || pinError || pin.length >= PIN_LENGTH) return;
+    if (isVerifying || pinError || pin.length >= PIN_LENGTH || isPinLocked) return;
     const next = pin + d;
     setPin(next);
     if (next.length === PIN_LENGTH) {
       setIsVerifying(true);
-      const ok = await verifyFallbackPassword(next);
+      const result = await verifyFallbackPassword(next);
       setIsVerifying(false);
-      if (ok) {
+      if (result === "success") {
         unlock();
       } else {
         setPinError(true);
@@ -119,6 +143,15 @@ export function BiometricLockScreen() {
                 />
               ))}
             </View>
+            {isPinLocked ? (
+              <Text style={[styles.pinSubtitle, { color: theme.loss }]}>
+                {t("settings.pinLocked", { seconds: lockoutRemaining ?? 30 })}
+              </Text>
+            ) : (
+              <Text style={[styles.pinSubtitle, { color: theme.textSecondary }]}>
+                {t("settings.pinAttemptsLeft", { count: remainingPinAttempts })}
+              </Text>
+            )}
             {isVerifying && (
               <ActivityIndicator color={theme.accent} style={{ marginTop: 6 }} />
             )}
@@ -187,6 +220,10 @@ const styles = StyleSheet.create({
   pinTitle: {
     fontSize: 17,
     fontWeight: "500",
+  },
+  pinSubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
   },
   dots: {
     flexDirection: "row",

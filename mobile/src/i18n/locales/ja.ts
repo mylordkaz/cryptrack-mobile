@@ -120,6 +120,8 @@ export const ja = {
     pinUse: "PINを使用",
     pinWrong: "PINが間違っています",
     pinEnter: "PINを入力",
+    pinLocked: "試行回数が多すぎます。{{seconds}}秒後に再試行してください",
+    pinAttemptsLeft: "残り{{count}}回の試行ができます",
     pinConfirm: "PINを確認",
     about: "について",
     version: "バージョン",

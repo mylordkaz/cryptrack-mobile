@@ -121,6 +121,8 @@ export const en = {
     pinUse: "Use PIN",
     pinWrong: "Incorrect PIN",
     pinEnter: "Enter PIN",
+    pinLocked: "Too many attempts. Try again in {{seconds}}s",
+    pinAttemptsLeft: "{{count}} attempts remaining",
     pinConfirm: "Confirm PIN",
     about: "About",
     version: "Version",
