@@ -25,14 +25,15 @@ import { PerformanceChart } from "@/components/charts/PerformanceChart";
 interface PortfolioChartProps {
   assets: AssetWithMetrics[];
   onValueChange?: (value: number | null) => void;
+  selectedPeriod: TimePeriod;
+  onPeriodChange: (period: TimePeriod) => void;
 }
 
-export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
+export function PortfolioChart({ assets, onValueChange, selectedPeriod, onPeriodChange }: PortfolioChartProps) {
   const { theme } = useTheme();
   const { t, locale } = useLocale();
   const { currency, convertUsd } = useCurrency();
   const [chartType, setChartType] = useState<ChartType>("performance");
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
   const { data: historyData, loading: historyLoading } = usePortfolioHistory(
     assets.map((asset) => asset.symbol),
   );
@@ -183,7 +184,7 @@ export function PortfolioChart({ assets, onValueChange }: PortfolioChartProps) {
             chartHeight={chartHeight}
             tooltipLabel={tooltipLabel}
             selectedPeriod={selectedPeriod}
-            onSelectPeriod={setSelectedPeriod}
+            onSelectPeriod={onPeriodChange}
             onChartLayout={(width, height) => {
               chartWidth.value = width;
               chartHeight.value = height;

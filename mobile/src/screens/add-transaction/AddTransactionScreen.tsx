@@ -1,4 +1,11 @@
-import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  Pressable,
+  Keyboard,
+} from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { useLocale } from "@/src/i18n/LocaleProvider";
 import { formatDateTime } from "@/src/utils/format";
@@ -47,8 +54,17 @@ export default function AddTransactionScreen() {
   } = useAddTransactionForm();
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={{ padding: spacing.md }}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.bg }} keyboardShouldPersistTaps="handled">
+      <Pressable
+        style={{ padding: spacing.md }}
+        onPress={() => {
+          if (showAssetList) {
+            setShowAssetList(false);
+            setSearchQuery("");
+            Keyboard.dismiss();
+          }
+        }}
+      >
         <TypeToggle theme={theme} type={type} onChange={setType} t={t} />
 
         <AssetPicker
@@ -78,7 +94,7 @@ export default function AddTransactionScreen() {
           value={amount}
           onChangeText={setAmount}
           keyboardType="numeric"
-          placeholder="0.0"
+          placeholder="0"
           placeholderTextColor={theme.muted}
           style={{
             borderWidth: 1,
@@ -105,7 +121,7 @@ export default function AddTransactionScreen() {
           value={pricePerUnit}
           onChangeText={setPricePerUnit}
           keyboardType="numeric"
-          placeholder="0.0"
+          placeholder="0"
           placeholderTextColor={theme.muted}
           style={{
             borderWidth: 1,
@@ -156,7 +172,7 @@ export default function AddTransactionScreen() {
               setTotalFiatDirty(true);
             }}
             keyboardType="numeric"
-            placeholder="0.0"
+            placeholder="0"
             placeholderTextColor={theme.muted}
             style={{
               color: theme.text,
@@ -255,7 +271,7 @@ export default function AddTransactionScreen() {
             </View>
           )}
         </Pressable>
-      </View>
+      </Pressable>
     </ScrollView>
   );
 }

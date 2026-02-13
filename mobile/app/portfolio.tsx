@@ -12,12 +12,14 @@ import { Button, Body, Headline, Caption } from "@/components/ui";
 import { AlertCircle, Wallet } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useRef, useState } from "react";
+import { TimePeriod } from "@/src/charts/portfolioChartUtils";
 
 export default function PortfolioRecapScreen() {
   const { theme } = useTheme();
   const { t } = useLocale();
   const [refreshKey, setRefreshKey] = useState(0);
   const [displayedValue, setDisplayedValue] = useState<number | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("7D");
   const isFirstFocus = useRef(true);
   const { priceMap, loading: pricesLoading } = useCoins(refreshKey);
   const { portfolio, loading, error } = usePortfolioMetrics(
@@ -98,6 +100,8 @@ export default function PortfolioRecapScreen() {
       <PortfolioChart
         assets={portfolio.assets}
         onValueChange={setDisplayedValue}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={setSelectedPeriod}
       />
 
       <AssetList assets={portfolio.assets} />

@@ -52,7 +52,7 @@ export function AssetPicker({
       >
         {t("transaction.asset")}
       </Text>
-      {!showAssetList && selectedCoin ? (
+      {!showAssetList ? (
         <Pressable
           onPress={() => {
             setShowAssetList(true);
@@ -69,32 +69,38 @@ export function AssetPicker({
             minHeight: 44,
           }}
         >
-          <Image
-            source={{ uri: selectedCoin.image }}
-            style={{
-              width: 28,
-              height: 28,
-              marginRight: spacing.sm,
-              borderRadius: 14,
-            }}
-            contentFit="contain"
-            cachePolicy="disk"
-          />
-          <Text style={{ color: theme.text, fontSize: 15, flex: 1 }}>
-            {selectedCoin.name}
-          </Text>
-          <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-            {selectedCoin.symbol.toUpperCase()}
-          </Text>
+          {selectedCoin ? (
+            <>
+              <Image
+                source={{ uri: selectedCoin.image }}
+                style={{
+                  width: 28,
+                  height: 28,
+                  marginRight: spacing.sm,
+                  borderRadius: 14,
+                }}
+                contentFit="contain"
+                cachePolicy="disk"
+              />
+              <Text style={{ color: theme.text, fontSize: 15, flex: 1 }}>
+                {selectedCoin.name}
+              </Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+                {selectedCoin.symbol.toUpperCase()}
+              </Text>
+            </>
+          ) : (
+            <Text style={{ color: theme.muted, fontSize: 15 }}>
+              {t("transaction.searchAsset")}
+            </Text>
+          )}
         </Pressable>
       ) : (
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          onFocus={() => setShowAssetList(true)}
           placeholder={t("transaction.searchAsset")}
           placeholderTextColor={theme.muted}
-          autoFocus={showAssetList}
           style={{
             borderWidth: 1,
             borderColor: theme.border,
@@ -117,6 +123,7 @@ export function AssetPicker({
             marginBottom: spacing.md,
           }}
           nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
         >
           {coinsLoading ? (
             <View style={{ padding: spacing.md, alignItems: "center" }}>
