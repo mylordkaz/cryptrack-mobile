@@ -58,10 +58,10 @@ export default function AddTransactionScreen() {
       <Pressable
         style={{ padding: spacing.md }}
         onPress={() => {
+          Keyboard.dismiss();
           if (showAssetList) {
             setShowAssetList(false);
             setSearchQuery("");
-            Keyboard.dismiss();
           }
         }}
       >

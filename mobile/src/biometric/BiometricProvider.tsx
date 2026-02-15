@@ -40,6 +40,7 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 interface BiometricContextValue {
+  initialized: boolean;
   enabled: boolean;
   isLocked: boolean;
   isAuthenticating: boolean;
@@ -67,6 +68,7 @@ export function useBiometric(): BiometricContextValue {
 
 export function BiometricProvider({ children }: { children: React.ReactNode }) {
   const { t } = useLocale();
+  const [initialized, setInitialized] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -162,6 +164,7 @@ export function BiometricProvider({ children }: { children: React.ReactNode }) {
         setIsLocked(true);
       }
       if (pw) setHasFallbackPassword(true);
+      setInitialized(true);
     })();
   }, [readPasswordHash]);
 
@@ -311,6 +314,7 @@ export function BiometricProvider({ children }: { children: React.ReactNode }) {
   return (
     <BiometricContext.Provider
       value={{
+        initialized,
         enabled,
         isLocked,
         isAuthenticating,

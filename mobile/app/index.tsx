@@ -1,8 +1,10 @@
 import { View, StyleSheet } from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Button, Headline, Body } from "@/components/ui";
 import { useLocale } from "@/src/i18n/LocaleProvider";
+import { useBiometric } from "@/src/biometric/BiometricProvider";
 import { Image } from "expo-image";
 import { TrendingUp } from "lucide-react-native";
 
@@ -10,6 +12,19 @@ export default function LandingScreen() {
   const { theme, isDark } = useTheme();
   const router = useRouter();
   const { t } = useLocale();
+  const { initialized, enabled } = useBiometric();
+
+  useEffect(() => {
+    if (initialized && enabled) {
+      router.replace("/portfolio");
+    }
+  }, [initialized, enabled]);
+
+  // Wait for biometric state to load before rendering,
+  // so we never flash the landing screen when biometrics is enabled.
+  if (!initialized || enabled) {
+    return <View style={[styles.container, { backgroundColor: theme.bg }]} />;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
