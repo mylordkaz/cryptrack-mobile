@@ -15,6 +15,8 @@ import { useLocale } from "@/src/i18n/LocaleProvider";
 import { usePortfolio } from "@/src/portfolio";
 import { buildTransactionPayload } from "./buildTransactionPayload";
 
+const normalizeDecimal = (v: string): string => v.replace(",", ".");
+
 export type TxType = "BUY" | "SELL";
 
 type SearchParams = {
@@ -77,16 +79,16 @@ export function useAddTransactionForm(): UseAddTransactionForm {
 
   const [type, setType] = useState<TxType>("BUY");
   const [assetSymbol, setAssetSymbol] = useState(symbol ?? "");
-  const [amount, setAmount] = useState("");
-  const [pricePerUnit, setPricePerUnit] = useState("");
-  const [feeAmount, setFeeAmount] = useState("");
+  const [amount, setAmountRaw] = useState("");
+  const [pricePerUnit, setPricePerUnitRaw] = useState("");
+  const [feeAmount, setFeeAmountRaw] = useState("");
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAssetList, setShowAssetList] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
-  const [totalFiat, setTotalFiat] = useState("");
+  const [totalFiat, setTotalFiatRaw] = useState("");
   const [totalFiatDirty, setTotalFiatDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currencySymbol =
@@ -125,6 +127,11 @@ export function useAddTransactionForm(): UseAddTransactionForm {
       setAssetSymbol(coins[0].symbol);
     }
   }, [assetSymbol, coins, symbol]);
+
+  const setAmount = (v: string) => setAmountRaw(normalizeDecimal(v));
+  const setPricePerUnit = (v: string) => setPricePerUnitRaw(normalizeDecimal(v));
+  const setFeeAmount = (v: string) => setFeeAmountRaw(normalizeDecimal(v));
+  const setTotalFiat = (v: string) => setTotalFiatRaw(normalizeDecimal(v));
 
   const selectedCoin = coins.find((coin) => coin.symbol === assetSymbol);
 
