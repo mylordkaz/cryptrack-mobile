@@ -7,6 +7,7 @@ export const fr = {
     cancel: "Annuler",
     back: "Retour",
     done: "Terminé",
+    next: "Suivant",
     details: "Détails",
   },
   landing: {

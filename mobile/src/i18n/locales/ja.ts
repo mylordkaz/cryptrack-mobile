@@ -7,6 +7,7 @@ export const ja = {
     cancel: "キャンセル",
     back: "戻る",
     done: "完了",
+    next: "次へ",
     details: "詳細",
   },
   landing: {

@@ -7,6 +7,7 @@ export const en = {
     cancel: "Cancel",
     back: "Back",
     done: "Done",
+    next: "Next",
     details: "Details",
   },
   landing: {

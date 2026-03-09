@@ -121,12 +121,6 @@ export function useAddTransactionForm(): UseAddTransactionForm {
     };
   }, [id, convertUsd, activePortfolioId]);
 
-  useEffect(() => {
-    if (symbol) return;
-    if (!assetSymbol && coins.length > 0) {
-      setAssetSymbol(coins[0].symbol);
-    }
-  }, [assetSymbol, coins, symbol]);
 
   const setAmount = (v: string) => setAmountRaw(normalizeDecimal(v));
   const setPricePerUnit = (v: string) => setPricePerUnitRaw(normalizeDecimal(v));
