@@ -47,18 +47,6 @@ type LatestPricesResponse = {
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
-const buildCoinsFromMeta = (coins: CoinMetaResponse["coins"]): Coin[] =>
-  coins.map((coin) => ({
-    id: coin.id,
-    symbol: coin.symbol.toUpperCase(),
-    name: coin.name,
-    image: coin.image,
-    current_price: 0,
-    market_cap: 0,
-    market_cap_rank: 0,
-    price_change_percentage_24h: 0,
-  }));
-
 const PRICE_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const PRICE_LAST_FETCH_KEY = "prices-last-fetch-at";
 
@@ -140,14 +128,25 @@ export function useCoins(refreshKey: number = 0) {
           const data = (await response.json()) as CoinMetaResponse;
           if (cancelled) return;
 
-          const metaCoins = buildCoinsFromMeta(data.coins);
-          resolvedCoins = metaCoins;
-
           // Save to database (metadata only)
           await saveCoinsBatch(data.coins);
 
+          // Re-read from DB to get consistent market_cap_rank ordering
+          const savedCoins = await getAllCoins();
+          const dbCoins = savedCoins.map((c) => ({
+            id: c.id,
+            symbol: c.symbol,
+            name: c.name,
+            image: c.image_url,
+            current_price: 0,
+            market_cap: 0,
+            market_cap_rank: c.market_cap_rank ?? 0,
+            price_change_percentage_24h: 0,
+          }));
+          resolvedCoins = dbCoins;
+
           if (!cancelled) {
-            setCoins(metaCoins);
+            setCoins(dbCoins);
           }
         }
 
