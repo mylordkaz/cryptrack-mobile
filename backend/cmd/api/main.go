@@ -37,6 +37,14 @@ func main() {
 	http.HandleFunc("/prices/history", priceHandler.HandleGetHistory)
 	http.HandleFunc("/fx", fxHandler.HandleGetRates)
 	http.HandleFunc("/health", priceHandler.HandleHealth)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
 
 	// Configure server with timeouts
 	server := &http.Server{
