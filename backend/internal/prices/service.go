@@ -17,6 +17,7 @@ type Service struct {
 	client       *CoinGeckoClient
 	cmcClient    *CoinMarketCapClient
 	cache        *Cache
+	historyStore *HistoryStore
 	metaStore    *MetaStore
 	cmcMetaStore *MetaStore
 	cmcMapStore  *CMCMapStore
@@ -28,10 +29,19 @@ const cmcTopPricesCacheKey = "cmc_top_prices"
 
 // NewService creates a new price service
 func NewService(metaPath, cmcMetaPath, cmcMapPath string) *Service {
+	historyStore, err := NewHistoryStoreFromEnv()
+	if err != nil {
+		log.Printf("Failed to initialize Turso history store: %v", err)
+	}
+	if historyStore != nil {
+		log.Printf("Turso history store enabled")
+	}
+
 	return &Service{
 		client:       NewCoinGeckoClient(),
 		cmcClient:    NewCoinMarketCapClient(),
 		cache:        NewCache(),
+		historyStore: historyStore,
 		metaStore:    NewMetaStore(metaPath),
 		cmcMetaStore: NewMetaStore(cmcMetaPath),
 		cmcMapStore:  NewCMCMapStore(cmcMapPath),
@@ -214,8 +224,8 @@ func (s *Service) GetHistory(id, days, interval string) (*HistoryResponse, error
 	}
 
 	if days != canonicalDays || resolvedInterval != canonicalInterval {
-			log.Printf("History canonicalized: request days=%s -> fetch days=%s interval=%s",
-				days, canonicalDays, canonicalInterval)
+		log.Printf("History canonicalized: request days=%s -> fetch days=%s interval=%s",
+			days, canonicalDays, canonicalInterval)
 	}
 
 	key := strings.ToLower(fmt.Sprintf("%s:%s:%s", id, canonicalDays, canonicalInterval))
@@ -225,6 +235,14 @@ func (s *Service) GetHistory(id, days, interval string) (*HistoryResponse, error
 			return cached, nil
 		}
 
+		if persisted, found, err := s.historyStore.Get(key, canonicalDays, canonicalInterval); err != nil {
+			return nil, err
+		} else if found {
+			log.Printf("Turso cache hit for history (%s)", key)
+			s.cache.SetHistory(key, persisted)
+			return persisted, nil
+		}
+
 		log.Printf("Cache miss for history (%s), fetching from CoinGecko", key)
 		history, err := s.client.GetMarketChart(id, canonicalDays, canonicalInterval)
 		if err != nil {
@@ -232,6 +250,9 @@ func (s *Service) GetHistory(id, days, interval string) (*HistoryResponse, error
 		}
 
 		s.cache.SetHistory(key, history)
+		if err := s.historyStore.Set(key, history); err != nil {
+			log.Printf("Failed to persist history (%s) to Turso: %v", key, err)
+		}
 		return history, nil
 	})
 
@@ -274,7 +295,15 @@ func (s *Service) GetHistoryCachedOnly(id, days, interval string) (*HistoryRespo
 	key := strings.ToLower(fmt.Sprintf("%s:%s:%s", id, canonicalDays, canonicalInterval))
 	history, found := s.cache.GetHistory(key)
 	if !found {
-		return nil, fmt.Errorf("history not cached for %s", key)
+		var err error
+		history, found, err = s.historyStore.Get(key, canonicalDays, canonicalInterval)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			return nil, fmt.Errorf("history not cached for %s", key)
+		}
+		s.cache.SetHistory(key, history)
 	}
 
 	if days != canonicalDays {
@@ -502,6 +531,12 @@ func (s *Service) prewarmHistoryForCoin(id, days, interval string) error {
 	if _, found := s.cache.GetHistory(key); found {
 		return nil
 	}
+	if persisted, found, err := s.historyStore.Get(key, days, interval); err != nil {
+		return err
+	} else if found {
+		s.cache.SetHistory(key, persisted)
+		return nil
+	}
 
 	log.Printf("Prewarm history for %s (days=%s interval=%s)", id, days, interval)
 	history, err := s.client.GetMarketChart(id, days, interval)
@@ -510,6 +545,9 @@ func (s *Service) prewarmHistoryForCoin(id, days, interval string) error {
 	}
 
 	s.cache.SetHistory(key, history)
+	if err := s.historyStore.Set(key, history); err != nil {
+		log.Printf("Failed to persist prewarmed history (%s) to Turso: %v", key, err)
+	}
 	return nil
 }
 
