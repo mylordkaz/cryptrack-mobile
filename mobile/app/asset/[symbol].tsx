@@ -20,6 +20,7 @@ import {
 } from "@/src/utils/format";
 import { useCurrency } from "@/src/currency";
 import { deleteTransaction } from "@/src/db/transactions";
+import { usePortfolio } from "@/src/portfolio";
 import { Transaction } from "@/src/types/transaction";
 import { TransactionDetailsBottomSheet } from "@/components/TransactionDetailsBottomSheet";
 import { computeTransactionDetails } from "@/src/math/transactionMath";
@@ -36,6 +37,7 @@ export default function AssetDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const [refreshKey, setRefreshKey] = useState(0);
+  const { bumpTransactionVersion } = usePortfolio();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [coinMetadata, setCoinMetadata] = useState<CoinMetadata | null>(null);
   const isFirstFocus = useRef(true);
@@ -136,6 +138,7 @@ export default function AssetDetailScreen() {
         style: "destructive",
         onPress: async () => {
           await deleteTransaction(selectedTx.id);
+          bumpTransactionVersion();
           setSelectedTx(null);
           setRefreshKey((prev) => prev + 1);
         },

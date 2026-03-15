@@ -34,8 +34,16 @@ export function PortfolioChart({ assets, onValueChange, selectedPeriod, onPeriod
   const { t, locale } = useLocale();
   const { currency, convertUsd } = useCurrency();
   const [chartType, setChartType] = useState<ChartType>("performance");
+  const latestPriceBySymbol = useMemo(
+    () =>
+      Object.fromEntries(
+        assets.map((asset) => [asset.symbol.toUpperCase(), asset.currentPrice]),
+      ),
+    [assets],
+  );
   const { data: historyData, loading: historyLoading } = usePortfolioHistory(
     assets.map((asset) => asset.symbol),
+    latestPriceBySymbol,
   );
   const [tooltipLabel, setTooltipLabel] = useState("");
   const axisFont = useFont(interRegular, 11);
@@ -61,24 +69,15 @@ export function PortfolioChart({ assets, onValueChange, selectedPeriod, onPeriod
       });
     }
 
-    const currentTotal = assets.reduce(
-      (sum, asset) => sum + asset.currentValue,
-      0,
-    );
-    if (sampled.length > 0 && currentTotal > 0) {
-      const last = sampled[sampled.length - 1];
-      sampled[sampled.length - 1] = { ...last, y: currentTotal };
-    }
-
     return sampled;
-  }, [assets, historyData, selectedPeriod]);
+  }, [historyData, selectedPeriod]);
 
   const xAxisLabels = useMemo(() => {
     const { labelInterval } = PERIOD_CONFIG[selectedPeriod];
     return generateXLabels(chartData, labelInterval);
   }, [chartData, selectedPeriod, locale]);
 
-  const yAxisTickValues = useMemo(() => {
+  const { ticks: yAxisTickValues, domainMin: yDomainMin, domainMax: yDomainMax } = useMemo(() => {
     return generateYAxisTicks(chartData);
   }, [chartData]);
 
@@ -174,6 +173,8 @@ export function PortfolioChart({ assets, onValueChange, selectedPeriod, onPeriod
             historyLoading={historyLoading}
             xAxisLabels={xAxisLabels}
             yAxisTickValues={yAxisTickValues}
+            yDomainMin={yDomainMin}
+            yDomainMax={yDomainMax}
             currency={currency}
             locale={locale}
             convertUsd={convertUsd}

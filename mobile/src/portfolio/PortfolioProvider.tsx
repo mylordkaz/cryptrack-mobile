@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   DEFAULT_PORTFOLIO_ID,
@@ -17,6 +17,8 @@ type PortfolioContextValue = {
   setActivePortfolioId: (id: string) => Promise<void>;
   portfolios: Portfolio[];
   refreshPortfolios: () => Promise<void>;
+  transactionVersion: number;
+  bumpTransactionVersion: () => void;
 };
 
 const PortfolioContext = createContext<PortfolioContextValue | null>(null);
@@ -26,6 +28,11 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     DEFAULT_PORTFOLIO_ID,
   );
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [transactionVersion, setTransactionVersion] = useState(0);
+
+  const bumpTransactionVersion = useCallback(() => {
+    setTransactionVersion((v) => v + 1);
+  }, []);
 
   const refreshPortfolios = async () => {
     await ensureDefaultPortfolio();
@@ -67,8 +74,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       setActivePortfolioId,
       portfolios,
       refreshPortfolios,
+      transactionVersion,
+      bumpTransactionVersion,
     }),
-    [activePortfolioId, portfolios],
+    [activePortfolioId, portfolios, transactionVersion, bumpTransactionVersion],
   );
 
   return (

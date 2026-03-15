@@ -71,7 +71,7 @@ const buildReviewPromptKey = (portfolioId: string | null) =>
 export function useAddTransactionForm(): UseAddTransactionForm {
   const { t } = useLocale();
   const { currency, convertUsd, convertToUsd } = useCurrency();
-  const { activePortfolioId } = usePortfolio();
+  const { activePortfolioId, bumpTransactionVersion } = usePortfolio();
   const { symbol, id } = useLocalSearchParams<SearchParams>();
   const router = useRouter();
   const { coins, loading: coinsLoading } = useCoins();
@@ -191,11 +191,13 @@ export function useAddTransactionForm(): UseAddTransactionForm {
 
     if (isEditing && id) {
       await updateTransaction(id, payload);
+      bumpTransactionVersion();
       router.back();
       return;
     }
 
     await insertTransaction(payload);
+    bumpTransactionVersion();
 
     const reviewPromptKey = buildReviewPromptKey(activePortfolioId);
     const alreadyPrompted = await AsyncStorage.getItem(reviewPromptKey);
