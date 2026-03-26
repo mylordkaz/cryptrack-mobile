@@ -100,6 +100,7 @@ export const ja = {
     english: "英語",
     japanese: "日本語",
     french: "フランス語",
+    spanish: "スペイン語",
     currency: "通貨",
     currencyValue: "USD",
     selectCurrency: "通貨を選択",

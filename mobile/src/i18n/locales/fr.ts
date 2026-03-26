@@ -101,6 +101,7 @@ export const fr = {
     english: "Anglais",
     japanese: "Japonais",
     french: "Français",
+    spanish: "Espagnol",
     currency: "Devise",
     currencyValue: "USD",
     selectCurrency: "Sélectionner la Devise",

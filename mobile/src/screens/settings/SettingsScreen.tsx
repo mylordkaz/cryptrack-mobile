@@ -42,6 +42,7 @@ export default function SettingsScreen() {
     () =>
       [
         { code: "en", label: t("settings.english") },
+        { code: "es", label: t("settings.spanish") },
         { code: "ja", label: t("settings.japanese") },
         { code: "fr", label: t("settings.french") },
       ] as { code: Language; label: string }[],

@@ -101,6 +101,7 @@ export const en = {
     english: "English",
     japanese: "Japanese",
     french: "French",
+    spanish: "Spanish",
     currency: "Currency",
     currencyValue: "USD",
     selectCurrency: "Select Currency",

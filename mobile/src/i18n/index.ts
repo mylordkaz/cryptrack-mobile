@@ -2,16 +2,18 @@ import * as Localization from "expo-localization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { I18n } from "i18n-js";
 import { en } from "./locales/en";
+import { es } from "./locales/es";
 import { fr } from "./locales/fr";
 import { ja } from "./locales/ja";
 
 const translations = {
   en,
+  es,
   fr,
   ja,
 };
 
-export const SUPPORTED_LOCALES = ["en", "fr", "ja"] as const;
+export const SUPPORTED_LOCALES = ["en", "es", "fr", "ja"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 const DEFAULT_LOCALE: Locale = "en";
 const LANGUAGE_STORAGE_KEY = "app-language";
