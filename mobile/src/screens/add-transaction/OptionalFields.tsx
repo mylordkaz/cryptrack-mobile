@@ -12,6 +12,8 @@ type OptionalFieldsProps = {
   setFeeAmount: (value: string) => void;
   notes: string;
   setNotes: (value: string) => void;
+  feeAccessoryViewID?: string;
+  onBottomFieldFocus?: () => void;
 };
 
 export function OptionalFields({
@@ -23,6 +25,8 @@ export function OptionalFields({
   setFeeAmount,
   notes,
   setNotes,
+  feeAccessoryViewID,
+  onBottomFieldFocus,
 }: OptionalFieldsProps) {
   return (
     <Fragment>
@@ -65,7 +69,9 @@ export function OptionalFields({
           <TextInput
             value={feeAmount}
             onChangeText={setFeeAmount}
+            onFocus={onBottomFieldFocus}
             keyboardType="numeric"
+            inputAccessoryViewID={feeAccessoryViewID}
             placeholder="0.0"
             placeholderTextColor={theme.muted}
             style={{
@@ -92,6 +98,7 @@ export function OptionalFields({
           <TextInput
             value={notes}
             onChangeText={setNotes}
+            onFocus={onBottomFieldFocus}
             placeholder={t("transaction.notesPlaceholder")}
             placeholderTextColor={theme.muted}
             style={{

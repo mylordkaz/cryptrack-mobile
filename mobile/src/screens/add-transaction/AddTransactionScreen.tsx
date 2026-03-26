@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   View,
   Text,
@@ -5,6 +6,8 @@ import {
   ScrollView,
   Pressable,
   Keyboard,
+  InputAccessoryView,
+  Platform,
 } from "react-native";
 import { useTheme, spacing, radius } from "@/src/theme";
 import { useLocale } from "@/src/i18n/LocaleProvider";
@@ -15,9 +18,41 @@ import { OptionalFields } from "@/src/screens/add-transaction/OptionalFields";
 import { DatePickerModal } from "@/src/screens/add-transaction/DatePickerModal";
 import { useAddTransactionForm } from "@/src/screens/add-transaction/useAddTransactionForm";
 
+function DoneAccessory({ id, label }: { id: string; label: string }) {
+  if (Platform.OS !== "ios") return null;
+  return (
+    <InputAccessoryView nativeID={id}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+        }}
+      >
+        <Pressable onPress={() => Keyboard.dismiss()} hitSlop={8}>
+          <Text style={{ color: "#007AFF", fontSize: 16, fontWeight: "600" }}>
+            {label}
+          </Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  );
+}
+
 export default function AddTransactionScreen() {
   const { theme, isDark } = useTheme();
   const { t } = useLocale();
+  const doneLabel = t("common.done");
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollToEnd = () =>
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300);
+  const closeAssetList = () => {
+    if (showAssetList) {
+      setShowAssetList(false);
+      setSearchQuery("");
+    }
+  };
   const {
     type,
     setType,
@@ -54,17 +89,26 @@ export default function AddTransactionScreen() {
   } = useAddTransactionForm();
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.bg }} keyboardShouldPersistTaps="handled">
-      <Pressable
-        style={{ padding: spacing.md }}
-        onPress={() => {
-          Keyboard.dismiss();
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{ padding: spacing.md, paddingBottom: 40 }}
+        onScrollBeginDrag={() => {
           if (showAssetList) {
             setShowAssetList(false);
             setSearchQuery("");
           }
         }}
       >
+        <Pressable
+          onPress={() => {
+            Keyboard.dismiss();
+            closeAssetList();
+          }}
+        >
         <TypeToggle theme={theme} type={type} onChange={setType} t={t} />
 
         <AssetPicker
@@ -93,7 +137,9 @@ export default function AddTransactionScreen() {
         <TextInput
           value={amount}
           onChangeText={setAmount}
+          onFocus={closeAssetList}
           keyboardType="numeric"
+          inputAccessoryViewID="done-amount"
           placeholder="0"
           placeholderTextColor={theme.muted}
           style={{
@@ -120,7 +166,9 @@ export default function AddTransactionScreen() {
         <TextInput
           value={pricePerUnit}
           onChangeText={setPricePerUnit}
+          onFocus={closeAssetList}
           keyboardType="numeric"
+          inputAccessoryViewID="done-price"
           placeholder="0"
           placeholderTextColor={theme.muted}
           style={{
@@ -167,11 +215,13 @@ export default function AddTransactionScreen() {
           </Text>
           <TextInput
             value={totalFiat}
+            onFocus={closeAssetList}
             onChangeText={(value) => {
               setTotalFiat(value);
               setTotalFiatDirty(true);
             }}
             keyboardType="numeric"
+            inputAccessoryViewID="done-total"
             placeholder="0"
             placeholderTextColor={theme.muted}
             style={{
@@ -230,6 +280,8 @@ export default function AddTransactionScreen() {
           setFeeAmount={setFeeAmount}
           notes={notes}
           setNotes={setNotes}
+          feeAccessoryViewID="done-fee"
+          onBottomFieldFocus={() => { scrollToEnd(); closeAssetList(); }}
         />
 
         <DatePickerModal
@@ -271,7 +323,13 @@ export default function AddTransactionScreen() {
             </View>
           )}
         </Pressable>
-      </Pressable>
-    </ScrollView>
+        </Pressable>
+
+      </ScrollView>
+      <DoneAccessory id="done-amount" label={doneLabel} />
+      <DoneAccessory id="done-price" label={doneLabel} />
+      <DoneAccessory id="done-total" label={doneLabel} />
+      <DoneAccessory id="done-fee" label={doneLabel} />
+    </View>
   );
 }
